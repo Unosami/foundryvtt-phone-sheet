@@ -1,4 +1,7 @@
 import PhoneSheet5e from "./dnd5e-sheet.js";
+import { hideChat, preloadChat, toggleChat } from "./chat.js";
+import { initInviteQR } from "./invite-qr.js";
+import { initRollToasts } from "./roll-toast.js";
 
 const MODULE_ID = "phone-sheet";
 const WINDOW_CLASS = "phone-sheet-window";
@@ -7,6 +10,9 @@ let active = false;
 
 /** The dnd5e phone sheet in use, or null on other systems. */
 let phoneSheet = null;
+
+// For the GM on desktop: QR codes in the Game Invitation Links window.
+initInviteQR();
 
 Hooks.once("init", () => {
   game.settings.register(MODULE_ID, "mode", {
@@ -23,12 +29,6 @@ Hooks.once("init", () => {
     default: "auto",
     requiresReload: true
   });
-  game.settings.register(MODULE_ID, "lastTab", {
-    scope: "client",
-    config: false,
-    type: String,
-    default: ""
-  });
 });
 
 /** Decide whether this device should run in phone mode. */
@@ -40,7 +40,8 @@ function shouldActivate() {
   return window.matchMedia("(pointer: coarse)").matches && (shortSide < 600);
 }
 
-const useCustomSheet = () => game.system.id === "dnd5e";
+/** Whether the phone sheet can show this actor. Anything else gets the system sheet and the fallback toolbar. */
+const usePhoneSheet = actor => (game.system.id === "dnd5e") && PhoneSheet5e.TYPES.has(actor.type);
 
 Hooks.once("setup", () => {
   active = shouldActivate();
@@ -62,11 +63,52 @@ Hooks.once("ready", () => {
   PhoneSheet5e.menu = {
     fullSheet: actor => renderSheet(actor.sheet),
     switchCharacter: chooseActor,
+    openActor: openSheet,
     exit: exitPhoneMode
   };
-  if ( !useCustomSheet() ) buildToolbar();
+  buildToolbar();
   openSheet(defaultActor());
+  preloadChat();
+  initRollToasts();
+  keepScreenAwake();
+  watchDialogs();
 });
+
+/** Pop-ups: any window other than the phone sheet, the full-screen sheets and chat. */
+const DIALOG_SELECTOR = `.application:not(.${WINDOW_CLASS}, .phone-sheet-app), .app.window-app:not(.${WINDOW_CLASS})`;
+
+/**
+ * Dim the screen behind pop-ups with one shared backdrop, so a dialog opened from another dialog
+ * (rolling a hit die during a short rest) doesn't darken the screen twice. Hidden windows don't count.
+ */
+function watchDialogs() {
+  let queued = false;
+  const update = () => {
+    queued = false;
+    const visible = el => (el.checkVisibility ? el.checkVisibility() : el.offsetWidth > 0);
+    const open = Array.from(document.body.children).some(el => el.matches(DIALOG_SELECTOR) && visible(el));
+    document.body.classList.toggle("phone-sheet-dialog", open);
+  };
+  new MutationObserver(() => {
+    if ( queued ) return;
+    queued = true;
+    requestAnimationFrame(update);
+  }).observe(document.body, { childList: true });
+  update();
+}
+
+/**
+ * Stop the phone dimming and locking mid-session. Browsers only allow this on HTTPS pages
+ * (navigator.wakeLock is missing over plain http), and drop the lock whenever the page is hidden.
+ */
+function keepScreenAwake() {
+  if ( !navigator.wakeLock ) return;
+  const request = () => navigator.wakeLock.request("screen").catch(() => {});
+  request();
+  document.addEventListener("visibilitychange", () => {
+    if ( document.visibilityState === "visible" ) request();
+  });
+}
 
 // Any actor sheet or chat popout opened in phone mode fills the screen.
 Hooks.on("renderApplicationV2", (app, element) => {
@@ -108,17 +150,14 @@ function openSheet(actor) {
     phoneSheet?.close();
   }
   current = actor;
-  if ( useCustomSheet() && (actor.type === "character") ) {
+  const custom = usePhoneSheet(actor);
+  // The phone sheet has its own nav; the toolbar keeps Switch and Exit reachable on every other sheet.
+  document.getElementById("phone-sheet-toolbar")?.toggleAttribute("hidden", custom);
+  if ( custom ) {
     if ( phoneSheet?.document !== actor ) phoneSheet = new PhoneSheet5e({document: actor});
     phoneSheet.render({force: true});
   }
   else renderSheet(actor.sheet);
-}
-
-function toggleChat() {
-  const popout = ui.chat.popout;
-  if ( popout?.rendered ) popout.close();
-  else ui.chat.renderPopout();
 }
 
 async function chooseActor() {
@@ -150,18 +189,19 @@ async function exitPhoneMode() {
   foundry.utils.debouncedReload();
 }
 
-/** Bottom toolbar for systems without a custom phone sheet. */
+/** Bottom toolbar for sheets the phone sheet doesn't handle: other systems, and actor types added by modules. */
 function buildToolbar() {
   const bar = document.createElement("nav");
   bar.id = "phone-sheet-toolbar";
   const buttons = [
-    ["fa-solid fa-id-card", "PHONESHEET.Sheet", () => openSheet(current ?? defaultActor())],
-    ["fa-solid fa-comments", "PHONESHEET.Chat", toggleChat],
+    ["fa-solid fa-id-card", "PHONESHEET.Sheet", () => { hideChat(); openSheet(current ?? defaultActor()); }],
+    ["fa-solid fa-comments", "PHONESHEET.Chat", toggleChat, "ps-chat-button"],
     ["fa-solid fa-users", "PHONESHEET.Switch", chooseActor],
     ["fa-solid fa-desktop", "PHONESHEET.Exit", exitPhoneMode]
   ];
-  for ( const [icon, label, onClick] of buttons ) {
+  for ( const [icon, label, onClick, cssClass] of buttons ) {
     const button = document.createElement("button");
+    if ( cssClass ) button.classList.add(cssClass);
     button.type = "button";
     button.innerHTML = `<i class="${icon}"></i>`;
     button.ariaLabel = button.dataset.tooltip = game.i18n.localize(label);

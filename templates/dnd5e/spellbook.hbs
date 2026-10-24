@@ -1,0 +1,82 @@
+<section class="tab ps-scroll ps-spellbook {{tab.cssClass}}" data-group="primary" data-tab="spellbook">
+  {{#if casting.length}}
+  <div class="ps-casting">
+    <div class="ps-sigil" aria-hidden="true"><i class="fa-solid fa-wand-sparkles"></i></div>
+    {{#each casting}}
+    <div class="ps-casting-row">
+      <div class="ps-casting-name">{{label}}{{#if ability}} <small>{{ability}}</small>{{/if}}</div>
+      <div class="ps-casting-stats">
+        <div class="ps-rune"><small>{{localize "PHONESHEET.SpellAttack"}}</small><span>{{attack}}</span></div>
+        <div class="ps-rune"><small>{{localize "PHONESHEET.SpellDC"}}</small><span>{{dc}}</span></div>
+      </div>
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#each concentration}}
+  <div class="ps-concentration">
+    <i class="fa-solid fa-brain"></i>
+    <span class="ps-label"><small>{{localize "PHONESHEET.Concentrating"}}</small> {{name}}</span>
+    <button type="button" data-action="endConcentration" data-id="{{id}}">{{localize "PHONESHEET.End"}}</button>
+  </div>
+  {{/each}}
+
+  {{#each sections}}
+  <div class="ps-spell-level {{#if collapsed}}collapsed{{/if}}">
+    <div class="ps-spell-level-header">
+      <button type="button" class="ps-spell-level-title" data-action="toggleGroup" data-id="{{id}}">
+        <span>{{label}}</span><i class="fa-solid fa-chevron-down"></i>
+      </button>
+      {{#if pips.length}}
+      <span class="ps-gems">
+        {{#each pips}}
+        <button type="button" class="ps-gem {{#if filled}}filled{{/if}} {{#if temp}}temp{{/if}}" data-action="setSlot"
+                data-slot="{{../key}}" data-n="{{n}}"
+                aria-label="{{localize (ifThen filled "PHONESHEET.SpendSlot" "PHONESHEET.RestoreSlot")}}">
+          <i class="fa-solid fa-gem"></i>
+        </button>
+        {{/each}}
+      </span>
+      {{/if}}
+    </div>
+    {{#unless collapsed}}
+    <ul class="ps-list">
+      {{#each rows}}
+      <li class="ps-spell {{#if canPrepare}}preparable{{/if}} {{#unless prepared}}unprepared{{/unless}} {{#if expanded}}expanded{{/if}}"
+          data-key="{{key}}" data-item-id="{{itemId}}">
+        <button type="button" class="ps-row" data-action="castSpell">
+          <img src="{{img}}" alt="">
+          <span class="ps-label">
+            {{name}}
+            {{#if concentration}}<span class="ps-tag" data-tooltip="{{localize "PHONESHEET.Concentration"}}">C</span>{{/if}}
+            {{#if ritual}}<span class="ps-tag" data-tooltip="{{localize "PHONESHEET.Ritual"}}">R</span>{{/if}}
+            <small class="ps-details">{{#if school}}{{school}}{{#if details}} · {{/if}}{{/if}}{{details}}</small>
+          </span>
+          {{#if uses}}<span class="ps-uses">{{uses}}</span>{{/if}}
+        </button>
+        {{#if canPrepare}}
+        <button type="button" class="ps-prepare {{#if prepared}}active{{/if}}" data-action="togglePrepared"
+                {{#if always}}disabled{{/if}}
+                data-tooltip="{{localize (ifThen always "PHONESHEET.AlwaysPrepared" (ifThen prepared "PHONESHEET.Prepared" "PHONESHEET.Unprepared"))}}"
+                aria-label="{{localize (ifThen always "PHONESHEET.AlwaysPrepared" (ifThen prepared "PHONESHEET.Prepared" "PHONESHEET.Unprepared"))}}">
+          <i class="fa-solid {{#if always}}fa-lock{{else}}{{#if prepared}}fa-book-open{{else}}fa-book{{/if}}{{/if}}"></i>
+        </button>
+        {{/if}}
+        <button type="button" class="ps-info {{#if expanded}}active{{/if}}" data-action="toggleInfo"
+                aria-label="{{localize "PHONESHEET.Details"}}">
+          <i class="fa-solid fa-circle-info"></i>
+        </button>
+        {{#if expanded}}
+        <div class="ps-description">
+          {{#each extra}}<p class="ps-spell-extra">{{this}}</p>{{/each}}
+          {{{description}}}
+        </div>
+        {{/if}}
+      </li>
+      {{/each}}
+    </ul>
+    {{/unless}}
+  </div>
+  {{/each}}
+</section>

@@ -9,22 +9,16 @@
     {{/each}}
   </div>
 
-  {{#if encumbrance}}
-  <div class="ps-encumbrance {{#if encumbrance.encumbered}}encumbered{{/if}}">
-    <div class="ps-encumbrance-label">
-      <span><i class="fa-solid fa-weight-hanging"></i> {{encumbrance.value}}/{{encumbrance.max}}</span>
-      {{#if attunement}}<span><i class="fa-solid fa-sun"></i> {{localize "PHONESHEET.Attuned"}} {{attunement}}</span>{{/if}}
-    </div>
-    <div class="ps-hp-bar"><div style="width: {{encumbrance.pct}}%"></div></div>
-  </div>
-  {{/if}}
+  {{> "modules/phone-sheet/templates/dnd5e/encumbrance.hbs"}}
 
   {{#each sections}}
-  <div class="ps-group">
-    <h3 class="ps-heading ps-section-heading">
-      {{#if img}}<img src="{{img}}" alt="">{{/if}}{{localize label}}
-      {{#if capacity}}<span>{{capacity}}</span>{{/if}}
-    </h3>
+  <div class="ps-group {{#if collapsed}}collapsed{{/if}}">
+    <button type="button" class="ps-heading ps-section-heading" data-action="toggleGroup" data-id="inventory.{{id}}">
+      {{#if img}}<img src="{{img}}" alt="">{{/if}}{{localize label}}<span class="ps-count">{{rows.length}}</span>
+      {{#if capacity}}<span class="ps-capacity">{{capacity}}</span>{{/if}}
+      <i class="fa-solid fa-chevron-down"></i>
+    </button>
+    {{#unless collapsed}}
     <ul class="ps-list">
       {{#each rows}}
       <li class="ps-item {{#if expanded}}expanded{{/if}}" data-key="{{key}}" data-item-id="{{itemId}}">
@@ -70,6 +64,7 @@
       <li class="ps-empty-row">{{localize "PHONESHEET.Inventory.Empty"}}</li>
       {{/each}}
     </ul>
+    {{/unless}}
   </div>
   {{/each}}
 </section>

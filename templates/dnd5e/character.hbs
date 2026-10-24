@@ -28,20 +28,82 @@
   <div class="ps-stats">
     <div class="ps-stat"><small>{{localize "PHONESHEET.AC"}}</small>{{ac}}</div>
     <button type="button" class="ps-stat" data-action="rollInitiative"><small>{{localize "PHONESHEET.Initiative"}}</small>{{init}}</button>
-    <div class="ps-stat"><small>{{localize "PHONESHEET.Prof"}}</small>{{prof}}</div>
-    {{#if hitDice}}<div class="ps-stat"><small>{{localize "PHONESHEET.HitDice"}}</small>{{hitDice}}</div>{{/if}}
+    {{#if prof}}<div class="ps-stat"><small>{{localize "PHONESHEET.Prof"}}</small>{{prof}}</div>{{/if}}
+    {{#if hitDice}}
+    <button type="button" class="ps-stat" data-action="rollHitDie" {{#unless canSpendHitDie}}disabled{{/unless}}
+            data-tooltip="{{localize "PHONESHEET.SpendHitDie"}}" aria-label="{{localize "PHONESHEET.SpendHitDie"}}">
+      <small>{{localize "PHONESHEET.HitDice"}}</small>{{hitDice}}
+    </button>
+    {{/if}}
+    {{#if canInspire}}
     <button type="button" class="ps-stat {{#if inspiration}}active{{/if}}" data-action="toggleInspiration">
       <small>{{localize "PHONESHEET.Inspiration"}}</small><i class="fa-{{#if inspiration}}solid{{else}}regular{{/if}} fa-star"></i>
     </button>
+    {{/if}}
     <div class="ps-stat ps-speed"><small>{{localize "PHONESHEET.Speed"}}</small>{{speed}}</div>
   </div>
 
+  {{> "modules/phone-sheet/templates/dnd5e/encumbrance.hbs"}}
+
+  {{#if canRest}}
   <div class="ps-rest">
     <button type="button" data-action="shortRest"><i class="fa-solid fa-utensils"></i> {{localize "PHONESHEET.ShortRest"}}</button>
     <button type="button" data-action="longRest"><i class="fa-solid fa-campground"></i> {{localize "PHONESHEET.LongRest"}}</button>
   </div>
+  {{/if}}
+
+  {{#if effects.length}}
+  <h3 class="ps-heading">{{localize "PHONESHEET.Effects"}}</h3>
+  <ul class="ps-list">
+    {{#each effects}}
+    <li class="ps-effect {{#if expanded}}expanded{{/if}}" data-key="{{key}}" data-uuid="{{uuid}}">
+      <button type="button" class="ps-row" data-action="toggleInfo">
+        <img src="{{img}}" alt="">
+        <span class="ps-label">
+          {{name}}
+          {{#if source}}<small class="ps-details">{{source}}</small>{{/if}}
+        </span>
+        {{#if duration}}<span class="ps-uses">{{duration}}</span>{{/if}}
+      </button>
+      {{#if canEnd}}
+      <button type="button" class="ps-end" data-action="endEffect"
+              aria-label="{{localize "PHONESHEET.EndEffect"}}" data-tooltip="{{localize "PHONESHEET.EndEffect"}}">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      {{/if}}
+      {{#if expanded}}
+      <div class="ps-description">{{#if description}}{{{description}}}{{else}}{{localize "PHONESHEET.NoEffectDescription"}}{{/if}}</div>
+      {{/if}}
+    </li>
+    {{/each}}
+  </ul>
+  {{/if}}
 
   <h3 class="ps-heading">{{localize "PHONESHEET.Conditions"}}</h3>
+  {{#if exhaustion}}
+  <div class="ps-exhaustion {{#if exhaustion.level}}active{{/if}} {{#if (eq exhaustion.level exhaustion.max)}}dead{{/if}}">
+    <div class="ps-exhaustion-row">
+      <img src="{{exhaustion.img}}" alt="">
+      <span class="ps-label">{{localize "DND5E.ConExhaustion"}}</span>
+      <button type="button" data-action="adjustExhaustion" data-delta="-1" {{#unless exhaustion.level}}disabled{{/unless}}
+              aria-label="−1"><i class="fa-solid fa-minus"></i></button>
+      <span class="ps-exhaustion-level">{{exhaustion.level}}<small>/{{exhaustion.max}}</small></span>
+      <button type="button" data-action="adjustExhaustion" data-delta="1" {{#if (eq exhaustion.level exhaustion.max)}}disabled{{/if}}
+              aria-label="+1"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <div class="ps-exhaustion-bar">
+      {{#each exhaustion.pips}}
+      <button type="button" class="{{#if filled}}filled{{/if}}" data-action="setExhaustion" data-level="{{n}}"
+              aria-label="{{localize "PHONESHEET.Exhaustion.Level" level=n}}">{{n}}</button>
+      {{/each}}
+    </div>
+    {{#if exhaustion.effects.length}}
+    <ul class="ps-exhaustion-effects">
+      {{#each exhaustion.effects}}<li>{{this}}</li>{{/each}}
+    </ul>
+    {{/if}}
+  </div>
+  {{/if}}
   <div class="ps-conditions">
     {{#each conditions}}
     <button type="button" class="{{#if active}}active{{/if}}" data-action="toggleCondition" data-id="{{id}}">
@@ -49,4 +111,11 @@
     </button>
     {{/each}}
   </div>
+
+  {{#if traits.length}}
+  <h3 class="ps-heading">{{localize "PHONESHEET.Traits"}}</h3>
+  <dl class="ps-traits">
+    {{#each traits}}<dt>{{label}}</dt><dd>{{values}}</dd>{{/each}}
+  </dl>
+  {{/if}}
 </section>

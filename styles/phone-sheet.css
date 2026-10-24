@@ -53,12 +53,57 @@ body.phone-sheet .phone-sheet-window.vertical-tabs {
 
 body.phone-sheet .phone-sheet-window .window-resize-handle { display: none !important; }
 
-/* Other dialogs (rolls, item use, rests) stay usable on a narrow screen. */
+/* Other dialogs (rolls, item use, rests) span the screen width, centered above the bottom bar.
+   Core windows don't scroll their content, so a dialog taller than the screen was cut off below its header;
+   now the content scrolls instead. */
 body.phone-sheet .application:not(.phone-sheet-window, .phone-sheet-app),
 body.phone-sheet .app.window-app:not(.phone-sheet-window) {
-  max-width: calc(100vw - 8px) !important;
-  max-height: calc(100dvh - var(--phone-sheet-bar) - 8px) !important;
+  left: 8px !important;
+  top: calc((100dvh - var(--phone-sheet-bar)) / 2) !important;
+  width: calc(100vw - 16px) !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: calc(100dvh - var(--phone-sheet-bar) - 16px) !important;
+  min-width: 0 !important;
+  transform: translateY(-50%) !important;
+  /* A bright outline so pop-ups stand out; the backdrop below dims everything behind them. */
+  border: 2px solid var(--ps-accent) !important;
+  box-shadow: 0 0 18px rgb(212 168 75 / 0.45) !important;
 }
+/* One backdrop however many pop-ups are open. Windows start at z-index 100. */
+body.phone-sheet-dialog::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgb(0 0 0 / 0.55);
+  pointer-events: none;
+}
+body.phone-sheet .application:not(.phone-sheet-window, .phone-sheet-app) > .window-content,
+body.phone-sheet .app.window-app:not(.phone-sheet-window) > .window-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+body.phone-sheet .application:not(.phone-sheet-window, .phone-sheet-app) > .window-content > * { flex-shrink: 0; }
+
+/* Chat, shown in place of a tab: full width, no window chrome, and hidden rather than closed. */
+body.phone-sheet:not(.phone-sheet-chat) #chat-popout { display: none !important; }
+body.phone-sheet #chat-popout {
+  background: var(--ps-bg);
+  border: none;
+  box-shadow: none;
+}
+body.phone-sheet #chat-popout > .window-header { display: none; }
+body.phone-sheet #chat-popout > .window-content { padding-top: env(safe-area-inset-top); }
+body.phone-sheet #chat-popout .chat-form {
+  width: 100%;
+  padding: 8px;
+  background: var(--ps-surface);
+  border-top: 1px solid var(--ps-border);
+}
+body.phone-sheet #chat-popout #chat-message { font-size: 16px; }
+body.phone-sheet #chat-popout #chat-controls { padding-inline: 0; }
 
 .phone-sheet-chooser .form-footer { flex-direction: column; }
 
@@ -76,6 +121,7 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
   background: var(--ps-surface);
   border-top: 1px solid var(--ps-border);
 }
+#phone-sheet-toolbar[hidden] { display: none; }
 #phone-sheet-toolbar button {
   flex: 1;
   height: 100%;
@@ -115,6 +161,8 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
   border-radius: 8px;
   margin: 0;
   padding: 0;
+  /* Core sizes every button to 2em, which squashed the small-font nav buttons and clipped their labels. */
+  height: auto;
   min-height: 0;
   line-height: inherit;
   box-shadow: none;
@@ -131,16 +179,37 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
 .phone-sheet-app small { color: var(--ps-muted); font-size: 0.8em; }
 
 /* Header */
+/* Parts added after the first render (a first spell) are appended, so pin header and nav in place. */
 .ps-header {
+  order: -1;
   flex: none;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   padding: 8px 12px;
   padding-top: max(8px, env(safe-area-inset-top));
   background: var(--ps-surface);
   border-bottom: 1px solid var(--ps-border);
 }
+.ps-header-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ps-header-stats {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.phone-sheet-app .ps-dc-chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ps-surface-2);
+  font-size: 0.82em;
+  white-space: nowrap;
+}
+.ps-dc-chip .ps-dc-label { font-weight: 500; color: var(--ps-muted); }
 .ps-portrait {
   width: 36px;
   height: 36px;
@@ -188,6 +257,8 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
   padding: 12px 12px 20px;
 }
 .phone-sheet-app .tab:not(.active) { display: none; }
+/* Sideways drags belong to tab swiping; the browser only handles vertical scrolling here. */
+.phone-sheet-app .ps-scroll { touch-action: pan-y; }
 
 .ps-heading {
   display: flex;
@@ -327,6 +398,27 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
 }
 .ps-group-header i { margin-left: auto; color: var(--ps-muted); transition: transform 150ms; }
 .ps-group.collapsed .ps-group-header i { transform: rotate(-90deg); }
+
+.ps-subgroup { margin: 0 0 8px; }
+.phone-sheet-app .ps-subgroup-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--ps-text);
+}
+.ps-source-icon { width: 16px; text-align: center; color: var(--ps-muted); }
+.ps-subgroup-header .fa-chevron-down { margin-left: auto; color: var(--ps-muted); font-size: 0.85em; transition: transform 150ms; }
+.ps-subgroup.collapsed .ps-subgroup-header .fa-chevron-down { transform: rotate(-90deg); }
+.ps-subgroup .ps-list { padding-left: 6px; border-left: 2px solid var(--ps-surface-2); }
 
 .ps-action {
   display: grid;
@@ -488,6 +580,7 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
 
 /* Bottom nav. Resets the core nav.tabs gap, borders and line-height, which squeeze each tab. */
 .phone-sheet-app nav.ps-nav {
+  order: 1;
   flex: none;
   height: calc(var(--phone-sheet-bar) + env(safe-area-inset-bottom));
   margin: 0;
@@ -531,8 +624,14 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.phone-sheet-app .ps-nav button.active { color: var(--ps-accent); }
-.ps-nav button.active i { background: rgb(212 168 75 / 0.18); }
+.phone-sheet-app .ps-nav button.active,
+body.phone-sheet-chat .phone-sheet-app .ps-nav .ps-chat-button { color: var(--ps-accent); }
+.ps-nav button.active i,
+body.phone-sheet-chat .ps-nav .ps-chat-button i { background: rgb(212 168 75 / 0.18); }
+/* While chat is showing, it's the highlighted tab. */
+body.phone-sheet-chat .phone-sheet-app .ps-nav button.active { color: var(--ps-muted); }
+body.phone-sheet-chat .ps-nav button.active i { background: none; }
+body.phone-sheet-chat #phone-sheet-toolbar .ps-chat-button { color: var(--ps-accent); }
 
 /* Inventory */
 .ps-currency {
@@ -572,9 +671,24 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
 .ps-encumbrance .ps-hp-bar div { background: var(--ps-accent); }
 .ps-encumbrance.encumbered .ps-hp-bar div { background: var(--ps-damage); }
 
-.ps-section-heading { justify-content: flex-start; gap: 6px; }
+.phone-sheet-app .ps-section-heading {
+  width: 100%;
+  min-height: 36px;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+}
 .ps-section-heading img { width: 18px; height: 18px; border: none; }
-.ps-section-heading span { margin-left: auto; padding-right: 0; }
+.ps-heading.ps-section-heading span { padding-right: 0; }
+.ps-section-heading .ps-capacity { margin-left: auto; }
+.ps-section-heading .fa-chevron-down { margin-left: auto; transition: transform 150ms; }
+.ps-section-heading .ps-capacity + .fa-chevron-down { margin-left: 8px; }
+.ps-group.collapsed .ps-section-heading .fa-chevron-down { transform: rotate(-90deg); }
 
 .ps-item img {
   flex: none;
@@ -623,3 +737,407 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
   font-variant-numeric: tabular-nums;
 }
 .ps-empty-row { color: var(--ps-muted); padding: 6px 12px; font-size: 0.9em; }
+
+/* Party */
+.ps-member img {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+}
+.ps-member { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.ps-member.owned { grid-template-columns: minmax(0, 1fr) 44px; }
+.phone-sheet-app .ps-member .ps-row:disabled { opacity: 1; cursor: default; }
+.phone-sheet-app .ps-member.expanded > .ps-row { border-color: var(--ps-accent); }
+.phone-sheet-app .ps-open { color: var(--ps-accent); }
+.ps-member-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ps-member-panel p { margin: 0; }
+.ps-member-classes { font-weight: 600; padding: 0 4px; }
+.ps-member-abilities {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+.ps-member-abilities div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.ps-member-passives { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 0 4px; }
+.ps-member-passives span { font-weight: 700; }
+.ps-member-passives small { font-weight: 500; }
+.ps-member .ps-hp-bar { display: block; height: 4px; margin: 5px 0 0; }
+.ps-member .ps-hp-bar span { display: block; height: 100%; background: var(--ps-heal); }
+.ps-member .ps-uses i { color: var(--ps-muted); font-size: 0.85em; }
+
+/* ---------------------------------------- */
+/*  Spellbook                               */
+/* ---------------------------------------- */
+
+.ps-spellbook {
+  --sb-ink: #ece6ff;
+  --sb-muted: #a99fcb;
+  --sb-glow: #b48cff;
+  --sb-gold: #ecc76e;
+  --sb-surface: rgb(52 38 96 / 0.55);
+  --sb-border: rgb(180 140 255 / 0.25);
+  color: var(--sb-ink);
+  /* A starfield over an indigo night sky. The default background attachment keeps it still while the list scrolls. */
+  background:
+    radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / 0.7), transparent 60%),
+    radial-gradient(1px 1px at 68% 9%, rgb(255 255 255 / 0.55), transparent 60%),
+    radial-gradient(1.5px 1.5px at 84% 42%, rgb(236 199 110 / 0.7), transparent 60%),
+    radial-gradient(1px 1px at 33% 61%, rgb(255 255 255 / 0.5), transparent 60%),
+    radial-gradient(1px 1px at 52% 83%, rgb(255 255 255 / 0.6), transparent 60%),
+    radial-gradient(1.5px 1.5px at 7% 76%, rgb(180 140 255 / 0.8), transparent 60%),
+    radial-gradient(1px 1px at 91% 88%, rgb(255 255 255 / 0.45), transparent 60%),
+    radial-gradient(ellipse 120% 55% at 50% -12%, rgb(124 77 255 / 0.38), transparent 65%),
+    radial-gradient(ellipse 90% 50% at 110% 105%, rgb(64 140 255 / 0.2), transparent 65%),
+    linear-gradient(180deg, #19122e 0%, #0e0b1b 100%);
+  background-size: 160px 160px, 210px 210px, 190px 190px, 230px 230px, 170px 170px, 250px 250px, 200px 200px,
+    100% 100%, 100% 100%, 100% 100%;
+}
+.ps-spellbook small { color: var(--sb-muted); }
+
+/* Spellcasting stats, under a slowly turning sigil. */
+.ps-casting {
+  position: relative;
+  padding: 30px 12px 12px;
+  margin: 18px 0 14px;
+  border: 1px solid var(--sb-border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgb(70 48 130 / 0.55), rgb(30 22 60 / 0.55));
+  box-shadow: 0 0 24px rgb(140 90 255 / 0.18), inset 0 0 18px rgb(140 90 255 / 0.12);
+}
+.ps-sigil {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #1d1536;
+  color: var(--sb-gold);
+  font-size: 1.05em;
+  box-shadow: 0 0 14px rgb(236 199 110 / 0.35);
+}
+.ps-sigil::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(var(--sb-gold), transparent 30%, var(--sb-glow) 50%, transparent 80%, var(--sb-gold));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  animation: ps-spin 12s linear infinite;
+}
+@keyframes ps-spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { .ps-sigil::before { animation: none; } }
+
+.ps-casting-row + .ps-casting-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sb-border); }
+.ps-casting-name {
+  text-align: center;
+  margin-bottom: 8px;
+  font-family: "Modesto Condensed", "Palatino Linotype", serif;
+  font-size: 1.35em;
+  letter-spacing: 0.03em;
+  color: var(--sb-gold);
+  text-shadow: 0 0 10px rgb(236 199 110 / 0.35);
+}
+.ps-casting-name small { font-family: var(--font-sans, sans-serif); font-size: 0.6em; letter-spacing: 0; }
+.ps-casting-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ps-rune {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid var(--sb-border);
+  border-radius: 10px;
+  background: rgb(18 12 38 / 0.6);
+}
+.ps-rune span {
+  font-size: 1.5em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 12px rgb(180 140 255 / 0.6);
+}
+
+.ps-concentration {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  margin-bottom: 10px;
+  border: 1px solid rgb(236 199 110 / 0.5);
+  border-radius: 10px;
+  background: rgb(236 199 110 / 0.1);
+}
+.ps-concentration > i { color: var(--sb-gold); }
+.phone-sheet-app .ps-concentration button { min-height: 36px; padding: 0 12px; background: rgb(18 12 38 / 0.6); border-color: var(--sb-border); }
+
+/* Spell level headings, with slot gems you can tap to spend or restore. */
+.ps-spell-level { margin-top: 14px; }
+.ps-spell-level-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, rgb(236 199 110 / 0.7), rgb(180 140 255 / 0.4) 60%, transparent) 1;
+}
+.phone-sheet-app .ps-spell-level-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 2px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: "Modesto Condensed", "Palatino Linotype", serif;
+  font-size: 1.3em;
+  letter-spacing: 0.03em;
+  color: var(--sb-gold);
+  text-shadow: 0 0 10px rgb(236 199 110 / 0.3);
+}
+.ps-spell-level-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-spell-level-title i { font-size: 0.6em; color: var(--sb-muted); text-shadow: none; transition: transform 150ms; }
+.ps-spell-level.collapsed .ps-spell-level-title i { transform: rotate(-90deg); }
+
+.ps-gems { flex: none; display: flex; flex-wrap: wrap; justify-content: flex-end; max-width: 60%; }
+.phone-sheet-app .ps-gem {
+  width: 30px;
+  height: 36px;
+  background: none;
+  border: none;
+  color: rgb(180 140 255 / 0.3);
+  font-size: 0.95em;
+}
+.phone-sheet-app .ps-gem.filled {
+  color: var(--sb-glow);
+  text-shadow: 0 0 8px rgb(180 140 255 / 0.9);
+}
+.phone-sheet-app .ps-gem.temp.filled { color: var(--sb-gold); text-shadow: 0 0 8px rgb(236 199 110 / 0.9); }
+
+.ps-spell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 4px;
+}
+.ps-spell.preparable { grid-template-columns: minmax(0, 1fr) 44px 44px; }
+.ps-spell img {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--sb-border);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgb(180 140 255 / 0.3);
+}
+.phone-sheet-app .ps-spell > button {
+  background: var(--sb-surface);
+  border-color: var(--sb-border);
+  backdrop-filter: blur(2px);
+}
+.phone-sheet-app .ps-spell.expanded > .ps-row { border-color: var(--sb-glow); box-shadow: 0 0 10px rgb(180 140 255 / 0.3); }
+.ps-spell.unprepared > .ps-row { opacity: 0.55; }
+.ps-spellbook .ps-info { color: var(--sb-muted); }
+.phone-sheet-app .ps-spellbook .ps-info.active { color: var(--sb-glow); border-color: var(--sb-glow); }
+.phone-sheet-app .ps-prepare { color: var(--sb-muted); }
+.phone-sheet-app .ps-prepare.active { color: var(--sb-gold); }
+.phone-sheet-app .ps-prepare:disabled { opacity: 0.7; cursor: default; }
+.ps-tag {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 4px;
+  margin-left: 2px;
+  border: 1px solid var(--sb-border);
+  border-radius: 4px;
+  font-size: 0.7em;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: middle;
+  color: var(--sb-gold);
+}
+.ps-spellbook .ps-uses { background: rgb(18 12 38 / 0.6); }
+.ps-spellbook .ps-description {
+  background: rgb(22 16 44 / 0.85);
+  border-color: var(--sb-border);
+}
+.ps-spell-extra { margin: 0 0 6px; color: var(--sb-muted); font-size: 0.95em; }
+
+/* Description */
+.ps-prose { font-size: 0.95em; line-height: 1.45; }
+
+/* Character: effects, exhaustion, traits */
+.ps-effect {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+}
+.ps-effect img {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+}
+.phone-sheet-app .ps-end { width: 44px; color: var(--ps-muted); }
+.phone-sheet-app .ps-effect.expanded > .ps-row { border-color: var(--ps-accent); }
+.phone-sheet-app .ps-stat:disabled { opacity: 1; cursor: default; }
+
+.ps-exhaustion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 4px 4px 6px 8px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 8px;
+  color: var(--ps-muted);
+  font-size: 0.9em;
+}
+.ps-exhaustion img { width: 22px; height: 22px; border: none; flex: none; opacity: 0.6; }
+.ps-exhaustion.active { color: var(--ps-text); border-color: var(--ps-accent); background: rgb(212 168 75 / 0.15); }
+.ps-exhaustion.active img { opacity: 1; }
+.ps-exhaustion-row { display: flex; align-items: center; gap: 8px; }
+.phone-sheet-app .ps-exhaustion-row button { width: 40px; height: 36px; flex: none; }
+.phone-sheet-app .ps-exhaustion-row button:disabled { opacity: 0.4; }
+.ps-exhaustion-bar {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 3px;
+  margin-right: 4px;
+}
+.phone-sheet-app .ps-exhaustion-bar button {
+  height: 26px;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: var(--ps-muted);
+  background: var(--ps-surface-2);
+  border-color: transparent;
+  border-radius: 4px;
+}
+/* Fills from amber to red as it climbs toward the last level. */
+.phone-sheet-app .ps-exhaustion-bar button.filled { color: var(--ps-accent-text); background: var(--ps-accent); }
+.phone-sheet-app .ps-exhaustion-bar button.filled:nth-child(n+4) { color: #fff; background: #d0743c; }
+.phone-sheet-app .ps-exhaustion-bar button.filled:nth-child(n+6) { background: var(--ps-damage); }
+.ps-exhaustion-effects {
+  margin: 0;
+  padding: 0 4px 0 18px;
+  font-size: 0.95em;
+  color: var(--ps-text);
+}
+.ps-exhaustion-effects li { margin: 1px 0; }
+.ps-exhaustion.dead { border-color: var(--ps-damage); background: rgb(194 70 61 / 0.15); }
+.ps-exhaustion-level {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-traits {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 10px;
+}
+.ps-traits dt { color: var(--ps-muted); font-size: 0.8em; font-weight: 600; }
+.ps-traits dt:not(:first-child) { margin-top: 8px; }
+.ps-traits dd { margin: 0; overflow-wrap: anywhere; }
+
+/* Roll results, popped up above the bottom bar. */
+#phone-sheet-toasts {
+  position: fixed;
+  inset: auto 12px calc(var(--phone-sheet-bar) + env(safe-area-inset-bottom) + 10px) 12px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+.phone-sheet-toast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  background: var(--ps-surface-2);
+  border: 2px solid var(--ps-accent);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.55), 0 0 14px rgb(212 168 75 / 0.35);
+  color: var(--ps-text);
+  font-size: 15px;
+  pointer-events: auto;
+  animation: ps-toast-in 180ms ease-out;
+  transition: opacity 250ms, transform 250ms;
+}
+.phone-sheet-toast .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-sheet-toast strong { font-size: 1.6em; font-variant-numeric: tabular-nums; }
+.phone-sheet-toast .hit-buttons { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.phone-sheet-toast .hit-buttons button {
+  min-height: 40px;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ps-text);
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 8px;
+}
+.phone-sheet-toast .hit-buttons button.hit { color: #fff; background: var(--ps-heal); border-color: var(--ps-heal); }
+.phone-sheet-toast.critical { border-color: var(--ps-heal); box-shadow: 0 6px 20px rgb(0 0 0 / 0.55), 0 0 14px rgb(63 155 90 / 0.5); }
+.phone-sheet-toast.critical strong { color: #6fd38c; }
+.phone-sheet-toast.fumble { border-color: var(--ps-damage); box-shadow: 0 6px 20px rgb(0 0 0 / 0.55), 0 0 14px rgb(194 70 61 / 0.5); }
+.phone-sheet-toast.fumble strong { color: #ec7a72; }
+/* Damage at the bottom or top of what the dice could roll. */
+.phone-sheet-toast strong.min { color: #ec7a72; }
+.phone-sheet-toast strong.max { color: #6fd38c; }
+.phone-sheet-toast.leaving { opacity: 0; transform: translateY(8px); }
+@keyframes ps-toast-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .phone-sheet-toast { animation: none; transition: none; }
+}
+
+/* QR codes in the Game Invitation Links window (desktop, so not scoped to phone mode). */
+#invitation-links .phone-sheet-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+#invitation-links .phone-sheet-qr .codes { display: flex; justify-content: center; gap: 16px; }
+#invitation-links .phone-sheet-qr figure { margin: 0; text-align: center; transition: filter 200ms, opacity 200ms; }
+/* The other code stays in view but can't be scanned by mistake. */
+#invitation-links .phone-sheet-qr figure.blurred { filter: blur(7px); opacity: 0.55; cursor: pointer; }
+#invitation-links .phone-sheet-qr svg { width: 160px; height: 160px; display: block; border-radius: 6px; }
+#invitation-links .phone-sheet-qr figcaption { margin-top: 4px; font-size: var(--font-size-12); color: var(--color-text-secondary); }
+#invitation-links .phone-sheet-qr button { width: auto; }

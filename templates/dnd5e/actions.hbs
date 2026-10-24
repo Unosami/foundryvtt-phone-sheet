@@ -15,29 +15,39 @@
   {{#each groups}}
   <div class="ps-group {{#if collapsed}}collapsed{{/if}}">
     <button type="button" class="ps-group-header" data-action="toggleGroup" data-id="{{id}}">
-      {{localize label}}<span class="ps-count">{{rows.length}}</span><i class="fa-solid fa-chevron-down"></i>
+      {{localize label}}<span class="ps-count">{{count}}</span><i class="fa-solid fa-chevron-down"></i>
     </button>
     {{#unless collapsed}}
-    <ul class="ps-list">
-      {{#each rows}}
-      <li class="ps-action" data-key="{{key}}" data-item-id="{{itemId}}" data-activity-id="{{activityId}}">
-        <button type="button" class="ps-row" data-action="useActivity">
-          <img src="{{img}}" alt="">
-          <span class="ps-label">
-            {{name}}{{#if activityName}} <small>· {{activityName}}</small>{{/if}}
-            {{#if details}}<small class="ps-details">{{details}}</small>{{/if}}
-          </span>
-          {{#if quantity}}<span class="ps-uses">×{{quantity}}</span>{{/if}}
-          {{#if uses}}<span class="ps-uses">{{uses}}</span>{{/if}}
-        </button>
-        <button type="button" class="ps-info {{#if expanded}}active{{/if}}" data-action="toggleInfo"
-                aria-label="{{localize "PHONESHEET.Details"}}">
-          <i class="fa-solid fa-circle-info"></i>
-        </button>
-        {{#if expanded}}<div class="ps-description">{{{description}}}</div>{{/if}}
-      </li>
-      {{/each}}
-    </ul>
+    {{#each sources}}
+    <div class="ps-subgroup {{#if collapsed}}collapsed{{/if}}">
+      <button type="button" class="ps-subgroup-header" data-action="toggleGroup" data-id="{{id}}">
+        <i class="ps-source-icon {{icon}}"></i>{{localize label}}<span class="ps-count">{{rows.length}}</span>
+        <i class="fa-solid fa-chevron-down"></i>
+      </button>
+      {{#unless collapsed}}
+      <ul class="ps-list">
+        {{#each rows}}
+        <li class="ps-action" data-key="{{key}}" data-item-id="{{itemId}}" data-activity-id="{{activityId}}">
+          <button type="button" class="ps-row" data-action="useActivity">
+            <img src="{{img}}" alt="">
+            <span class="ps-label">
+              {{name}}{{#if activityName}} <small>· {{activityName}}</small>{{/if}}
+              {{#if details}}<small class="ps-details">{{details}}</small>{{/if}}
+            </span>
+            {{#if quantity}}<span class="ps-uses">×{{quantity}}</span>{{/if}}
+            {{#if uses}}<span class="ps-uses">{{uses}}</span>{{/if}}
+          </button>
+          <button type="button" class="ps-info {{#if expanded}}active{{/if}}" data-action="toggleInfo"
+                  aria-label="{{localize "PHONESHEET.Details"}}">
+            <i class="fa-solid fa-circle-info"></i>
+          </button>
+          {{#if expanded}}<div class="ps-description">{{{description}}}</div>{{/if}}
+        </li>
+        {{/each}}
+      </ul>
+      {{/unless}}
+    </div>
+    {{/each}}
     {{/unless}}
   </div>
   {{else}}

@@ -1,0 +1,9 @@
+{{#if encumbrance}}
+<div class="ps-encumbrance {{#if encumbrance.encumbered}}encumbered{{/if}}">
+  <div class="ps-encumbrance-label">
+    <span><i class="fa-solid fa-weight-hanging"></i> {{encumbrance.value}}/{{encumbrance.max}}</span>
+    {{#if attunement}}<span><i class="fa-solid fa-sun"></i> {{localize "PHONESHEET.Attuned"}} {{attunement}}</span>{{/if}}
+  </div>
+  <div class="ps-hp-bar"><div style="width: {{encumbrance.pct}}%"></div></div>
+</div>
+{{/if}}

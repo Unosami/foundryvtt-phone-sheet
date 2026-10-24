@@ -13,6 +13,7 @@
     {{/each}}
   </div>
 
+  {{#if skillRows.length}}
   <h3 class="ps-heading">
     {{localize "PHONESHEET.Skills"}}<span>{{localize "PHONESHEET.Passive"}}</span>
   </h3>
@@ -28,6 +29,7 @@
     </li>
     {{/each}}
   </ul>
+  {{/if}}
 
   {{#if toolRows.length}}
   <h3 class="ps-heading">{{localize "PHONESHEET.Tools"}}</h3>

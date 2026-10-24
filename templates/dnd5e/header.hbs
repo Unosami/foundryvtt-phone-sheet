@@ -1,9 +1,24 @@
 <header class="ps-header">
-  <img class="ps-portrait" src="{{img}}" alt="">
-  <div class="ps-name">{{actor.name}}</div>
-  <button type="button" class="ps-chip ps-hp" data-action="tab" data-group="primary" data-tab="character"
-          style="--hp-pct: {{hp.pct}}%">
-    <i class="fa-solid fa-heart"></i>{{hp.value}}/{{hp.max}}{{#if hp.temp}}<small>+{{hp.temp}}</small>{{/if}}
-  </button>
-  <span class="ps-chip"><i class="fa-solid fa-shield-halved"></i>{{ac}}</span>
+  <div class="ps-header-main">
+    <img class="ps-portrait" src="{{img}}" alt="">
+    <div class="ps-name">{{actor.name}}</div>
+    {{#if hp}}
+    <button type="button" class="ps-chip ps-hp" data-action="tab" data-group="primary" data-tab="character"
+            style="--hp-pct: {{hp.pct}}%">
+      <i class="fa-solid fa-heart"></i>{{hp.value}}/{{hp.max}}{{#if hp.temp}}<small>+{{hp.temp}}</small>{{/if}}
+    </button>
+    {{/if}}
+    {{#if (ne ac null)}}<span class="ps-chip"><i class="fa-solid fa-shield-halved"></i>{{ac}}</span>{{/if}}
+    {{#if (ne memberCount null)}}<span class="ps-chip"><i class="fa-solid fa-users"></i>{{memberCount}}</span>{{/if}}
+  </div>
+  {{#if stats.length}}
+  <div class="ps-header-stats">
+    {{#each stats}}
+    <button type="button" class="ps-chip ps-dc-chip" data-action="tab" data-group="primary" data-tab="{{tab}}">
+      <i class="{{icon}}"></i><span class="ps-dc-label">{{label}}</span>
+      {{#if attack}}<span>{{attack}}</span>{{/if}}<span>{{localize "PHONESHEET.DC" dc=dc}}</span>
+    </button>
+    {{/each}}
+  </div>
+  {{/if}}
 </header>

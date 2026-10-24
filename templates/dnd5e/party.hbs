@@ -1,0 +1,44 @@
+<section class="tab ps-scroll {{tab.cssClass}}" data-group="primary" data-tab="party">
+  <h3 class="ps-heading">{{localize "PHONESHEET.Members"}}</h3>
+  <ul class="ps-list">
+    {{#each members}}
+    <li class="ps-member {{#if owner}}owned{{/if}} {{#if expanded}}expanded{{/if}}" data-key="{{key}}">
+      <button type="button" class="ps-row" {{#if canExpand}}data-action="toggleInfo"{{else}}disabled{{/if}}>
+        <img src="{{img}}" alt="">
+        <span class="ps-label">
+          {{name}}{{#if quantity}} <small>×{{quantity}}</small>{{/if}}
+          {{#if subtitle}}<small class="ps-details">{{subtitle}}</small>{{/if}}
+          {{#if hp}}<span class="ps-hp-bar"><span style="width: {{hp.pct}}%"></span></span>{{/if}}
+        </span>
+        {{#if hp}}<span class="ps-uses"><i class="fa-solid fa-heart"></i> {{hp.value}}/{{hp.max}}</span>{{/if}}
+        {{#if (ne ac null)}}<span class="ps-uses"><i class="fa-solid fa-shield-halved"></i> {{ac}}</span>{{/if}}
+      </button>
+      {{#if owner}}
+      <button type="button" class="ps-open" data-action="openMember" data-uuid="{{uuid}}"
+              aria-label="{{localize "PHONESHEET.OpenSheet"}}" data-tooltip="{{localize "PHONESHEET.OpenSheet"}}">
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+      {{/if}}
+      {{#if expanded}}
+      <div class="ps-member-panel">
+        {{#if classes}}<p class="ps-member-classes">{{classes}}</p>{{/if}}
+        {{#if abilities.length}}
+        <div class="ps-member-abilities">
+          {{#each abilities}}<div><small>{{abbr}}</small><strong>{{mod}}</strong><small>{{value}}</small></div>{{/each}}
+        </div>
+        {{/if}}
+        {{#if passives.length}}
+        <p class="ps-member-passives">
+          {{#each passives}}<span><small>{{localize "PHONESHEET.Passive"}} {{label}}</small> {{value}}</span>{{/each}}
+        </p>
+        {{/if}}
+        {{#if biography}}<div class="ps-description">{{{biography}}}</div>{{/if}}
+        {{#unless (or classes biography)}}<p class="ps-empty-row">{{localize "PHONESHEET.NothingToShow"}}</p>{{/unless}}
+      </div>
+      {{/if}}
+    </li>
+    {{else}}
+    <li class="ps-empty-row">{{localize "PHONESHEET.NoMembers"}}</li>
+    {{/each}}
+  </ul>
+</section>
