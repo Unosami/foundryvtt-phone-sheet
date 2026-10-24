@@ -61,27 +61,6 @@ The phone's screen is kept awake only when Foundry is served over HTTPS; browser
 
 The login (join) page only loads Foundry's core files, so modules can't give it a phone layout.
 
-## Publishing a release
-
-Foundry installs and updates modules using two links in `module.json`:
-
-- `manifest`: where Foundry fetches the latest `module.json` to check for updates. It points at
-  `releases/latest/download/module.json`, which GitHub always redirects to the newest release, so it never changes.
-- `download`: the zip Foundry downloads for *this* version. It contains the version number, so it changes with
-  every release.
-
-To publish version `X.Y.Z`:
-
-1. In `module.json`, set `"version": "X.Y.Z"` and change the `download` link to end in `/vX.Y.Z/module.zip`.
-2. Commit, then build the zip from the module folder (files at the top level of the zip, not inside a subfolder):
-
-   ```sh
-   zip -r module.zip module.json README.md lang scripts styles templates vendor
-   ```
-
-3. On GitHub, create a new release with the tag `vX.Y.Z` and attach **both** `module.zip` and `module.json` as
-   release files.
-
 ## Credits
 
 QR codes use [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase (MIT),
