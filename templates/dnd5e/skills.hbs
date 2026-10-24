@@ -1,0 +1,46 @@
+<section class="tab ps-scroll {{tab.cssClass}}" data-group="primary" data-tab="skills">
+  <div class="ps-abilities">
+    {{#each abilityRows}}
+    <div class="ps-ability">
+      <div class="ps-ability-name">{{abbr}}<span>{{value}}</span></div>
+      <button type="button" data-action="rollCheck" data-id="{{id}}">
+        <small>{{localize "PHONESHEET.Check"}}</small>{{check}}
+      </button>
+      <button type="button" class="{{#if saveProficient}}proficient{{/if}}" data-action="rollSave" data-id="{{id}}">
+        <small>{{localize "PHONESHEET.Save"}}</small>{{save}}
+      </button>
+    </div>
+    {{/each}}
+  </div>
+
+  <h3 class="ps-heading">
+    {{localize "PHONESHEET.Skills"}}<span>{{localize "PHONESHEET.Passive"}}</span>
+  </h3>
+  <ul class="ps-list">
+    {{#each skillRows}}
+    <li>
+      <button type="button" class="ps-row {{#if proficient}}proficient{{/if}}" data-action="rollSkill" data-id="{{id}}">
+        <i class="ps-prof {{icon}}"></i>
+        <span class="ps-label">{{label}} <small>{{ability}}</small></span>
+        <span class="ps-passive">{{passive}}</span>
+        <span class="ps-mod">{{total}}</span>
+      </button>
+    </li>
+    {{/each}}
+  </ul>
+
+  {{#if toolRows.length}}
+  <h3 class="ps-heading">{{localize "PHONESHEET.Tools"}}</h3>
+  <ul class="ps-list">
+    {{#each toolRows}}
+    <li>
+      <button type="button" class="ps-row proficient" data-action="rollTool" data-id="{{id}}">
+        <i class="ps-prof {{icon}}"></i>
+        <span class="ps-label">{{label}} <small>{{ability}}</small></span>
+        <span class="ps-mod">{{total}}</span>
+      </button>
+    </li>
+    {{/each}}
+  </ul>
+  {{/if}}
+</section>

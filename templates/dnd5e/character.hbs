@@ -1,0 +1,52 @@
+<section class="tab ps-scroll {{tab.cssClass}}" data-group="primary" data-tab="character">
+  <div class="ps-card ps-hp-card">
+    <div class="ps-hp-big">
+      <span>{{hp.value}}</span>/{{hp.max}}
+      <div class="ps-hp-bar"><div style="width: {{hp.pct}}%"></div></div>
+    </div>
+    <div class="ps-hp-controls">
+      <button type="button" class="ps-damage" data-action="damage"><i class="fa-solid fa-minus"></i></button>
+      <input type="number" class="hp-amount" inputmode="numeric" min="0" placeholder="{{localize "PHONESHEET.Amount"}}">
+      <button type="button" class="ps-heal" data-action="heal"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <label class="ps-temp">
+      {{localize "PHONESHEET.TempHP"}}
+      <input type="number" inputmode="numeric" name="system.attributes.hp.temp" value="{{hp.temp}}" min="0">
+    </label>
+  </div>
+
+  {{#if dying}}
+  <div class="ps-card ps-death">
+    <div class="ps-death-row">
+      <span class="ps-pips success">{{#each death.success}}<i class="{{#if this}}fa-solid{{else}}fa-regular{{/if}} fa-circle-check"></i>{{/each}}</span>
+      <span class="ps-pips failure">{{#each death.failure}}<i class="{{#if this}}fa-solid{{else}}fa-regular{{/if}} fa-circle-xmark"></i>{{/each}}</span>
+    </div>
+    <button type="button" data-action="rollDeathSave"><i class="fa-solid fa-skull"></i> {{localize "PHONESHEET.DeathSave"}}</button>
+  </div>
+  {{/if}}
+
+  <div class="ps-stats">
+    <div class="ps-stat"><small>{{localize "PHONESHEET.AC"}}</small>{{ac}}</div>
+    <button type="button" class="ps-stat" data-action="rollInitiative"><small>{{localize "PHONESHEET.Initiative"}}</small>{{init}}</button>
+    <div class="ps-stat"><small>{{localize "PHONESHEET.Prof"}}</small>{{prof}}</div>
+    {{#if hitDice}}<div class="ps-stat"><small>{{localize "PHONESHEET.HitDice"}}</small>{{hitDice}}</div>{{/if}}
+    <button type="button" class="ps-stat {{#if inspiration}}active{{/if}}" data-action="toggleInspiration">
+      <small>{{localize "PHONESHEET.Inspiration"}}</small><i class="fa-{{#if inspiration}}solid{{else}}regular{{/if}} fa-star"></i>
+    </button>
+    <div class="ps-stat ps-speed"><small>{{localize "PHONESHEET.Speed"}}</small>{{speed}}</div>
+  </div>
+
+  <div class="ps-rest">
+    <button type="button" data-action="shortRest"><i class="fa-solid fa-utensils"></i> {{localize "PHONESHEET.ShortRest"}}</button>
+    <button type="button" data-action="longRest"><i class="fa-solid fa-campground"></i> {{localize "PHONESHEET.LongRest"}}</button>
+  </div>
+
+  <h3 class="ps-heading">{{localize "PHONESHEET.Conditions"}}</h3>
+  <div class="ps-conditions">
+    {{#each conditions}}
+    <button type="button" class="{{#if active}}active{{/if}}" data-action="toggleCondition" data-id="{{id}}">
+      <img src="{{img}}" alt="">{{label}}
+    </button>
+    {{/each}}
+  </div>
+</section>

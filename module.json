@@ -1,0 +1,11 @@
+{
+  "id": "phone-sheet",
+  "title": "Phone Sheet",
+  "description": "Turns a phone browser into a full-screen character sheet for in-person play. Hides the map and UI and skips loading the canvas.",
+  "version": "1.1.0",
+  "authors": [{ "name": "Unosami" }],
+  "compatibility": { "minimum": "13", "verified": "14" },
+  "esmodules": ["scripts/phone-sheet.js"],
+  "styles": ["styles/phone-sheet.css"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }]
+}

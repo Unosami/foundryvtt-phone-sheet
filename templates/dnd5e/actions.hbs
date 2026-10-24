@@ -1,0 +1,45 @@
+<section class="tab ps-scroll {{tab.cssClass}}" data-group="primary" data-tab="actions">
+  {{#if slots.length}}
+  <div class="ps-slots">
+    {{#each slots}}
+    <div class="ps-slot">
+      <span>{{label}}</span>
+      <span class="ps-pips">
+        {{#each pips}}<i class="{{#if this}}fa-solid{{else}}fa-regular{{/if}} fa-circle"></i>{{/each}}
+      </span>
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#each groups}}
+  <div class="ps-group {{#if collapsed}}collapsed{{/if}}">
+    <button type="button" class="ps-group-header" data-action="toggleGroup" data-id="{{id}}">
+      {{localize label}}<span class="ps-count">{{rows.length}}</span><i class="fa-solid fa-chevron-down"></i>
+    </button>
+    {{#unless collapsed}}
+    <ul class="ps-list">
+      {{#each rows}}
+      <li class="ps-action" data-key="{{key}}" data-item-id="{{itemId}}" data-activity-id="{{activityId}}">
+        <button type="button" class="ps-row" data-action="useActivity">
+          <img src="{{img}}" alt="">
+          <span class="ps-label">
+            {{name}}{{#if activityName}} <small>· {{activityName}}</small>{{/if}}
+            {{#if details}}<small class="ps-details">{{details}}</small>{{/if}}
+          </span>
+          {{#if uses}}<span class="ps-uses">{{uses}}</span>{{/if}}
+        </button>
+        <button type="button" class="ps-info {{#if expanded}}active{{/if}}" data-action="toggleInfo"
+                aria-label="{{localize "PHONESHEET.Details"}}">
+          <i class="fa-solid fa-circle-info"></i>
+        </button>
+        {{#if expanded}}<div class="ps-description">{{{description}}}</div>{{/if}}
+      </li>
+      {{/each}}
+    </ul>
+    {{/unless}}
+  </div>
+  {{else}}
+  <p class="ps-empty">{{localize "PHONESHEET.NoActions"}}</p>
+  {{/each}}
+</section>

@@ -1,0 +1,510 @@
+/* Only applies when the module turns phone mode on (body.phone-sheet). */
+
+body.phone-sheet {
+  --phone-sheet-bar: 56px;
+  --ps-bg: #16161a;
+  --ps-surface: #222228;
+  --ps-surface-2: #2c2c34;
+  --ps-border: #3a3a44;
+  --ps-text: #ececf1;
+  --ps-muted: #9a9aa8;
+  --ps-accent: #d4a84b;
+  --ps-accent-text: #1b1406;
+  --ps-damage: #c2463d;
+  --ps-heal: #3f9b5a;
+  background: var(--ps-bg);
+}
+
+/* Hide the board and the whole tabletop UI. Windows live outside #interface, so they still show. */
+body.phone-sheet #board,
+body.phone-sheet #interface,
+body.phone-sheet #camera-views,
+body.phone-sheet #hud,
+body.phone-sheet #pause,
+/* Floating bars from other modules that attach to <body> instead of #interface. */
+body.phone-sheet #tokenbar,
+body.phone-sheet #tokenbar-window {
+  display: none !important;
+}
+
+/* System sheets and the chat popout fill the screen above the bottom bar.
+   !important beats the inline left/top/width/height Foundry sets on windows. */
+body.phone-sheet .phone-sheet-window {
+  position: fixed !important;
+  inset: 0 0 var(--phone-sheet-bar) 0 !important;
+  width: 100vw !important;
+  height: calc(100dvh - var(--phone-sheet-bar)) !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  transform: none !important;
+  border-radius: 0 !important;
+  /* Keep sheets under roll dialogs and other popups, which take z-index from 100 upward. */
+  z-index: 50 !important;
+}
+body.phone-sheet .phone-sheet-window.sidebar-popout { z-index: 60 !important; }
+
+/* dnd5e hangs its tabs off the right edge of the window, so leave room for them. */
+body.phone-sheet .phone-sheet-window.vertical-tabs {
+  right: 42px !important;
+  width: calc(100vw - 42px) !important;
+}
+
+body.phone-sheet .phone-sheet-window .window-resize-handle { display: none !important; }
+
+/* Other dialogs (rolls, item use, rests) stay usable on a narrow screen. */
+body.phone-sheet .application:not(.phone-sheet-window, .phone-sheet-app),
+body.phone-sheet .app.window-app:not(.phone-sheet-window) {
+  max-width: calc(100vw - 8px) !important;
+  max-height: calc(100dvh - var(--phone-sheet-bar) - 8px) !important;
+}
+
+.phone-sheet-chooser .form-footer { flex-direction: column; }
+
+/* ---------------------------------------- */
+/*  Fallback toolbar (non-dnd5e systems)    */
+/* ---------------------------------------- */
+
+#phone-sheet-toolbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  height: var(--phone-sheet-bar);
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  z-index: 70;
+  background: var(--ps-surface);
+  border-top: 1px solid var(--ps-border);
+}
+#phone-sheet-toolbar button {
+  flex: 1;
+  height: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--ps-text);
+  font-size: 1.25rem;
+}
+
+/* ---------------------------------------- */
+/*  dnd5e phone sheet                       */
+/* ---------------------------------------- */
+
+.phone-sheet-app {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ps-bg);
+  color: var(--ps-text);
+  font-size: 15px;
+  line-height: 1.3;
+}
+.phone-sheet-app *,
+.phone-sheet-app *::before,
+.phone-sheet-app *::after { box-sizing: border-box; }
+
+.phone-sheet-app button {
+  font: inherit;
+  color: inherit;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 8px;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  line-height: inherit;
+  box-shadow: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.phone-sheet-app button:active { filter: brightness(1.25); }
+/* Tab clicks read data-tab from the click target, so keep icons and labels from catching it. */
+.phone-sheet-app [data-action="tab"] > * { pointer-events: none; }
+
+.phone-sheet-app small { color: var(--ps-muted); font-size: 0.8em; }
+
+/* Header */
+.ps-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  background: var(--ps-surface);
+  border-bottom: 1px solid var(--ps-border);
+}
+.ps-portrait {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  flex: none;
+}
+.ps-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 1.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ps-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--ps-surface-2);
+  border: 1px solid var(--ps-border);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.phone-sheet-app .ps-hp {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: linear-gradient(90deg, rgb(194 70 61 / 0.45) var(--hp-pct), var(--ps-surface-2) var(--hp-pct));
+}
+.ps-chip i { color: var(--ps-muted); font-size: 0.85em; }
+
+/* Tabs */
+.ps-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 12px 20px;
+}
+.phone-sheet-app .tab:not(.active) { display: none; }
+
+.ps-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 18px 2px 6px;
+  border: none;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ps-muted);
+}
+.ps-heading span { font-weight: 500; letter-spacing: 0; text-transform: none; padding-right: 52px; }
+
+.ps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ps-list li { margin: 0; }
+
+.phone-sheet-app .ps-row {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  text-align: left;
+}
+.ps-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ps-mod {
+  flex: none;
+  min-width: 40px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 1.05em;
+  font-variant-numeric: tabular-nums;
+}
+.ps-passive {
+  flex: none;
+  min-width: 28px;
+  text-align: center;
+  color: var(--ps-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ps-prof { flex: none; width: 14px; color: var(--ps-muted); font-size: 0.8em; }
+.ps-row.proficient .ps-prof { color: var(--ps-accent); }
+
+/* Abilities: 3 per row */
+.ps-abilities {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.ps-ability {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 6px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 10px;
+}
+.ps-ability-name {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.85em;
+  letter-spacing: 0.05em;
+  padding: 0 2px;
+}
+.ps-ability-name span { color: var(--ps-muted); font-weight: 500; }
+.phone-sheet-app .ps-ability button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  min-height: 44px;
+  justify-content: center;
+  background: var(--ps-surface-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ps-ability button small { font-weight: 500; font-size: 0.7em; }
+.phone-sheet-app .ps-ability button.proficient { border-color: var(--ps-accent); }
+
+/* Actions */
+.ps-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.ps-slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 8px;
+  font-size: 0.85em;
+}
+.ps-pips { display: inline-flex; gap: 3px; color: var(--ps-accent); font-size: 0.8em; }
+
+.ps-group { margin-top: 10px; }
+.phone-sheet-app .ps-group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--ps-border);
+  border-radius: 0;
+  margin-bottom: 6px;
+  font-size: 0.85em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ps-accent);
+}
+.ps-count {
+  color: var(--ps-muted);
+  font-weight: 500;
+}
+.ps-group-header i { margin-left: auto; color: var(--ps-muted); transition: transform 150ms; }
+.ps-group.collapsed .ps-group-header i { transform: rotate(-90deg); }
+
+.ps-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 4px;
+}
+.ps-action img {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 6px;
+}
+.ps-details {
+  display: block;
+  margin-top: 2px;
+}
+.ps-uses {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--ps-surface-2);
+  font-size: 0.8em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.phone-sheet-app .ps-info { color: var(--ps-muted); }
+.phone-sheet-app .ps-info.active { color: var(--ps-accent); border-color: var(--ps-accent); }
+.ps-description {
+  grid-column: 1 / -1;
+  padding: 8px 12px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 8px;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+.ps-description :is(img, table, iframe) { max-width: 100%; height: auto; }
+.ps-description table { display: block; overflow-x: auto; }
+.ps-empty { color: var(--ps-muted); text-align: center; margin-top: 40px; }
+
+/* Character */
+.ps-card {
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.ps-hp-big {
+  text-align: center;
+  font-size: 1.2em;
+  color: var(--ps-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ps-hp-big span { font-size: 2em; font-weight: 700; color: var(--ps-text); }
+.ps-hp-bar {
+  height: 6px;
+  margin: 6px 0 12px;
+  border-radius: 3px;
+  background: var(--ps-surface-2);
+  overflow: hidden;
+}
+.ps-hp-bar div { height: 100%; background: var(--ps-heal); }
+.ps-hp-controls {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 56px;
+  gap: 8px;
+}
+.phone-sheet-app .ps-hp-controls button { min-height: 48px; font-size: 1.2em; }
+.phone-sheet-app .ps-damage { background: var(--ps-damage); border-color: var(--ps-damage); }
+.phone-sheet-app .ps-heal { background: var(--ps-heal); border-color: var(--ps-heal); }
+.phone-sheet-app input[type="number"] {
+  width: 100%;
+  height: 48px;
+  margin: 0;
+  padding: 0 8px;
+  text-align: center;
+  font-size: 1.2em;
+  color: var(--ps-text);
+  background: var(--ps-bg);
+  border: 1px solid var(--ps-border);
+  border-radius: 8px;
+}
+.ps-temp {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--ps-muted);
+}
+.phone-sheet-app .ps-temp input { height: 40px; font-size: 1em; }
+
+.ps-death-row {
+  display: flex;
+  justify-content: space-around;
+  font-size: 1.3em;
+  margin-bottom: 10px;
+}
+.ps-death .success { color: var(--ps-heal); }
+.ps-death .failure { color: var(--ps-damage); }
+.phone-sheet-app .ps-death button { width: 100%; min-height: 44px; }
+
+.ps-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.phone-sheet-app .ps-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 6px 4px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1.1em;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.ps-stat small { font-weight: 500; font-size: 0.65em; }
+.ps-stat.ps-speed { grid-column: 1 / -1; font-size: 0.95em; }
+.phone-sheet-app .ps-stat.active { color: var(--ps-accent); border-color: var(--ps-accent); }
+
+.ps-rest {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+.phone-sheet-app .ps-rest button { min-height: 44px; }
+
+.ps-conditions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.phone-sheet-app .ps-conditions button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px;
+  text-align: left;
+  font-size: 0.9em;
+  color: var(--ps-muted);
+}
+.ps-conditions img { width: 22px; height: 22px; border: none; flex: none; opacity: 0.6; }
+.phone-sheet-app .ps-conditions button.active {
+  color: var(--ps-text);
+  border-color: var(--ps-accent);
+  background: rgb(212 168 75 / 0.15);
+}
+.ps-conditions button.active img { opacity: 1; }
+
+/* Bottom nav */
+.ps-nav {
+  flex: none;
+  height: calc(var(--phone-sheet-bar) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  background: var(--ps-surface);
+  border-top: 1px solid var(--ps-border);
+}
+.phone-sheet-app .ps-nav button {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: var(--ps-muted);
+  font-size: 0.7em;
+}
+.ps-nav button i { font-size: 1.5em; }
+.phone-sheet-app .ps-nav button.active { color: var(--ps-accent); }

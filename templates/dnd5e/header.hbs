@@ -1,0 +1,9 @@
+<header class="ps-header">
+  <img class="ps-portrait" src="{{img}}" alt="">
+  <div class="ps-name">{{actor.name}}</div>
+  <button type="button" class="ps-chip ps-hp" data-action="tab" data-group="primary" data-tab="character"
+          style="--hp-pct: {{hp.pct}}%">
+    <i class="fa-solid fa-heart"></i>{{hp.value}}/{{hp.max}}{{#if hp.temp}}<small>+{{hp.temp}}</small>{{/if}}
+  </button>
+  <span class="ps-chip"><i class="fa-solid fa-shield-halved"></i>{{ac}}</span>
+</header>
