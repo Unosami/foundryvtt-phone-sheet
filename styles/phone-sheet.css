@@ -122,6 +122,9 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
   -webkit-tap-highlight-color: transparent;
 }
 .phone-sheet-app button:active { filter: brightness(1.25); }
+/* Core styles outline and glow focused and .active buttons; this sheet marks state with its own colors. */
+.phone-sheet-app button:is(:focus, .active, :hover) { outline: none; box-shadow: none; text-shadow: none; }
+.phone-sheet-app button:focus-visible { outline: 2px solid var(--ps-accent); outline-offset: -2px; }
 /* Tab clicks read data-tab from the click target, so keep icons and labels from catching it. */
 .phone-sheet-app [data-action="tab"] > * { pointer-events: none; }
 
@@ -483,28 +486,140 @@ body.phone-sheet .app.window-app:not(.phone-sheet-window) {
 }
 .ps-conditions button.active img { opacity: 1; }
 
-/* Bottom nav */
-.ps-nav {
+/* Bottom nav. Resets the core nav.tabs gap, borders and line-height, which squeeze each tab. */
+.phone-sheet-app nav.ps-nav {
   flex: none;
   height: calc(var(--phone-sheet-bar) + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
+  margin: 0;
+  padding: 0 0 env(safe-area-inset-bottom);
+  gap: 0;
+  line-height: normal;
   display: flex;
+  justify-content: stretch;
+  align-items: stretch;
   background: var(--ps-surface);
+  border: none;
   border-top: 1px solid var(--ps-border);
 }
 .phone-sheet-app .ps-nav button {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
+  padding: 0;
   background: none;
   border: none;
   border-radius: 0;
   color: var(--ps-muted);
-  font-size: 0.7em;
+  font-size: 0.68em;
 }
-.ps-nav button i { font-size: 1.5em; }
+.ps-nav button i {
+  display: grid;
+  place-items: center;
+  width: min(52px, 100%);
+  height: 28px;
+  border-radius: 14px;
+  font-size: 1.35rem;
+  transition: background-color 150ms;
+}
+.ps-nav button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .phone-sheet-app .ps-nav button.active { color: var(--ps-accent); }
+.ps-nav button.active i { background: rgb(212 168 75 / 0.18); }
+
+/* Inventory */
+.ps-currency {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.ps-coin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 10px;
+}
+.ps-coin img { width: 20px; height: 20px; border: none; }
+.phone-sheet-app .ps-coin input[type="number"] {
+  height: 32px;
+  padding: 0 2px;
+  font-size: 1em;
+  font-weight: 700;
+  background: transparent;
+  border-color: transparent;
+}
+.phone-sheet-app .ps-coin input[type="number"]:focus { border-color: var(--ps-accent); }
+
+.ps-encumbrance { margin-top: 10px; }
+.ps-encumbrance-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85em;
+  color: var(--ps-muted);
+}
+.ps-encumbrance .ps-hp-bar { margin: 4px 0 0; }
+.ps-encumbrance .ps-hp-bar div { background: var(--ps-accent); }
+.ps-encumbrance.encumbered .ps-hp-bar div { background: var(--ps-damage); }
+
+.ps-section-heading { justify-content: flex-start; gap: 6px; }
+.ps-section-heading img { width: 18px; height: 18px; border: none; }
+.ps-section-heading span { margin-left: auto; padding-right: 0; }
+
+.ps-item img {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 6px;
+}
+.ps-flag { flex: none; color: var(--ps-accent); font-size: 0.85em; }
+.phone-sheet-app .ps-item.expanded > .ps-row { border-color: var(--ps-accent); }
+.ps-item-panel {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ps-item-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.phone-sheet-app .ps-item-controls > button {
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 0 12px;
+}
+.phone-sheet-app .ps-item-controls > button.active { border-color: var(--ps-accent); color: var(--ps-accent); }
+.phone-sheet-app .ps-item-controls > .ps-use { flex-basis: 100%; }
+.ps-qty {
+  display: flex;
+  align-items: center;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: 8px;
+}
+.phone-sheet-app .ps-qty button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: none;
+}
+.ps-qty span {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ps-empty-row { color: var(--ps-muted); padding: 6px 12px; font-size: 0.9em; }

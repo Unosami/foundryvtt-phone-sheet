@@ -41,5 +41,18 @@
   "PHONESHEET.Speed": "Speed",
   "PHONESHEET.ShortRest": "Short rest",
   "PHONESHEET.LongRest": "Long rest",
-  "PHONESHEET.Conditions": "Conditions"
+  "PHONESHEET.Conditions": "Conditions",
+  "PHONESHEET.Tab.Inventory": "Inventory",
+  "PHONESHEET.Inventory.Weapons": "Weapons",
+  "PHONESHEET.Inventory.Equipment": "Equipment",
+  "PHONESHEET.Inventory.Consumables": "Consumables",
+  "PHONESHEET.Inventory.Tools": "Tools",
+  "PHONESHEET.Inventory.Loot": "Loot",
+  "PHONESHEET.Inventory.Empty": "Empty",
+  "PHONESHEET.Equipped": "Equipped",
+  "PHONESHEET.Equip": "Equip",
+  "PHONESHEET.Unequip": "Unequip",
+  "PHONESHEET.Attuned": "Attuned",
+  "PHONESHEET.Attune": "Attune",
+  "PHONESHEET.Unattune": "Unattune"
 }

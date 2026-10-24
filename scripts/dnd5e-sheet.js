@@ -15,6 +15,15 @@ const ACTION_GROUPS = {
 /** Sort order of item types inside an action group. */
 const TYPE_ORDER = ["weapon", "feat", "spell", "consumable", "equipment", "tool", "loot"];
 
+/** Inventory sections in display order. Containers get a section each, after these. */
+const INVENTORY_SECTIONS = {
+  weapon: "PHONESHEET.Inventory.Weapons",
+  equipment: "PHONESHEET.Inventory.Equipment",
+  consumable: "PHONESHEET.Inventory.Consumables",
+  tool: "PHONESHEET.Inventory.Tools",
+  loot: "PHONESHEET.Inventory.Loot"
+};
+
 const PROF_ICONS = {
   0: "fa-regular fa-circle",
   0.5: "fa-solid fa-circle-half-stroke",
@@ -43,6 +52,9 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       useActivity: PhoneSheet5e.#onUseActivity,
       toggleInfo: PhoneSheet5e.#onToggleInfo,
       toggleGroup: PhoneSheet5e.#onToggleGroup,
+      adjustQuantity: PhoneSheet5e.#onAdjustQuantity,
+      toggleEquipped: PhoneSheet5e.#onToggleEquipped,
+      toggleAttuned: PhoneSheet5e.#onToggleAttuned,
       damage: PhoneSheet5e.#onDamage,
       heal: PhoneSheet5e.#onHeal,
       toggleCondition: PhoneSheet5e.#onToggleCondition,
@@ -58,6 +70,7 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     header: { template: `${TEMPLATES}/header.hbs` },
     skills: { template: `${TEMPLATES}/skills.hbs`, scrollable: [""] },
     actions: { template: `${TEMPLATES}/actions.hbs`, scrollable: [""] },
+    inventory: { template: `${TEMPLATES}/inventory.hbs`, scrollable: [""] },
     character: { template: `${TEMPLATES}/character.hbs`, scrollable: [""] },
     nav: { template: `${TEMPLATES}/nav.hbs` }
   };
@@ -67,6 +80,7 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       tabs: [
         { id: "skills", icon: "fa-solid fa-dice-d20", label: "PHONESHEET.Tab.Skills" },
         { id: "actions", icon: "fa-solid fa-hand-fist", label: "PHONESHEET.Tab.Actions" },
+        { id: "inventory", icon: "fa-solid fa-sack", label: "PHONESHEET.Tab.Inventory" },
         { id: "character", icon: "fa-solid fa-heart", label: "PHONESHEET.Tab.Character" }
       ],
       initial: "skills"
@@ -125,6 +139,7 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     switch ( partId ) {
       case "skills": Object.assign(context, this.#prepareSkills()); break;
       case "actions": Object.assign(context, await this.#prepareActions()); break;
+      case "inventory": Object.assign(context, await this.#prepareInventory()); break;
       case "character": Object.assign(context, this.#prepareCharacter()); break;
     }
     return context;
@@ -170,13 +185,28 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       id, label, rows: [], collapsed: this.#collapsed.has(id)
     }]));
 
+    // Separate copies of the same item (two daggers, three healing potions) share one row.
+    const merged = new Map();
     for ( const item of this.document.items ) {
       if ( !this.#isAvailable(item) ) continue;
       const activities = item.system.activities?.filter(a => a.canUse) ?? [];
       for ( const activity of activities ) {
         const groupId = this.#actionGroup(activity);
-        groups[groupId].rows.push(await this.#prepareActionRow(item, activity, activities.length > 1, groupId));
+        const key = [groupId, item.type, item.name, activity.name, item.system.level ?? 0].join("|");
+        if ( !merged.has(key) ) merged.set(key, { groupId, multiple: activities.length > 1, copies: [] });
+        merged.get(key).copies.push({ item, activity });
       }
+    }
+
+    for ( const { groupId, multiple, copies } of merged.values() ) {
+      // Use a copy that can still be used, so tapping the row doesn't pick an empty one.
+      const { item, activity } = copies.find(c => !this.#isDepleted(c.item, c.activity)) ?? copies[0];
+      const row = await this.#prepareActionRow(item, activity, multiple, groupId);
+      if ( item.system.quantity !== undefined ) {
+        const quantity = copies.reduce((n, c) => n + (c.item.system.quantity ?? 1), 0);
+        if ( quantity > 1 ) row.quantity = quantity;
+      }
+      groups[groupId].rows.push(row);
     }
 
     const typeRank = t => { const i = TYPE_ORDER.indexOf(t); return i === -1 ? TYPE_ORDER.length : i; };
@@ -199,6 +229,15 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     }
     if ( ["weapon", "equipment"].includes(item.type) ) return sys.equipped !== false;
     return true;
+  }
+
+  #usesOf(item, activity) {
+    return activity.uses?.max ? activity.uses : item.system.uses;
+  }
+
+  #isDepleted(item, activity) {
+    const uses = this.#usesOf(item, activity);
+    return (uses?.max && (uses.value <= 0)) || (item.system.quantity === 0);
   }
 
   /**
@@ -228,7 +267,7 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     if ( damage ) details.push(damage);
     if ( labels.range && (item.type !== "feat") ) details.push(labels.range);
 
-    const uses = activity.uses?.max ? activity.uses : sys.uses;
+    const uses = this.#usesOf(item, activity);
     const key = `${item.id}.${activity.id}`;
     const expanded = this.#expanded.has(key);
     return {
@@ -253,6 +292,79 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       relativeTo: item,
       secrets: item.isOwner
     });
+  }
+
+  async #prepareInventory() {
+    const actor = this.document;
+    const { currency = {}, attributes } = actor.system;
+
+    const sections = new Map(Object.entries(INVENTORY_SECTIONS).map(([id, label]) => [id, { id, label, rows: [] }]));
+    const containers = new Map();
+    const physical = actor.items
+      .filter(i => i.system.quantity !== undefined)
+      .sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
+
+    for ( const item of physical.filter(i => i.type === "container") ) {
+      const capacity = await item.system.computeCapacity?.();
+      containers.set(item.id, {
+        id: item.id,
+        label: item.name,
+        img: item.img,
+        capacity: Number.isFinite(capacity?.max)
+          ? `${capacity.value}/${capacity.max} ${game.i18n.localize(capacity.units ?? "")}`.trim() : null,
+        rows: []
+      });
+    }
+
+    for ( const item of physical ) {
+      if ( item.type === "container" ) continue;
+      const section = containers.get(item.system.container) ?? sections.get(item.type) ?? sections.get("loot");
+      section.rows.push(await this.#prepareInventoryRow(item));
+    }
+
+    const encumbrance = attributes.encumbrance;
+    const attunement = attributes.attunement;
+    return {
+      currency: Object.entries(CONFIG.DND5E.currencies).map(([key, c]) => ({
+        key,
+        name: `system.currency.${key}`,
+        abbr: game.i18n.localize(c.abbreviation),
+        icon: c.icon,
+        value: currency[key] ?? 0
+      })),
+      encumbrance: encumbrance?.max ? {
+        value: encumbrance.value,
+        max: encumbrance.max,
+        pct: Math.round(encumbrance.pct ?? 0),
+        encumbered: encumbrance.encumbered
+      } : null,
+      attunement: attunement?.max ? `${attunement.value}/${attunement.max}` : null,
+      sections: [...sections.values(), ...containers.values()].filter(s => s.rows.length || containers.has(s.id))
+    };
+  }
+
+  async #prepareInventoryRow(item) {
+    const sys = item.system;
+    const key = `inv.${item.id}`;
+    const expanded = this.#expanded.has(key);
+    const weight = sys.totalWeight;
+    const units = CONFIG.DND5E.weightUnits[sys.weight?.units]?.abbreviation;
+    return {
+      key,
+      itemId: item.id,
+      img: item.img,
+      name: item.name,
+      quantity: sys.quantity,
+      weight: (typeof weight === "number") && (weight > 0)
+        ? `${weight.toNearest(0.1)} ${units ? game.i18n.localize(units) : ""}`.trim() : null,
+      canEquip: typeof sys.equipped === "boolean",
+      equipped: sys.equipped,
+      attunement: sys.attunement ? CONFIG.DND5E.attunementTypes[sys.attunement] : null,
+      attuned: sys.attuned,
+      expanded,
+      activities: expanded ? (sys.activities?.filter(a => a.canUse).map(a => ({ id: a.id, name: a.name })) ?? []) : [],
+      description: expanded ? await this.#enrich(item) : null
+    };
   }
 
   #prepareSlots() {
@@ -339,16 +451,36 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     this.document.rollDeathSave({ event });
   }
 
+  #itemFor(target) {
+    return this.document.items.get(target.closest("[data-item-id]")?.dataset.itemId);
+  }
+
   static #onUseActivity(event, target) {
-    const row = target.closest("[data-item-id]");
-    const item = this.document.items.get(row.dataset.itemId);
-    item?.system.activities?.get(row.dataset.activityId)?.use({ event });
+    const activityId = target.dataset.activityId ?? target.closest("[data-activity-id]")?.dataset.activityId;
+    this.#itemFor(target)?.system.activities?.get(activityId)?.use({ event });
   }
 
   static #onToggleInfo(event, target) {
     const key = target.closest("[data-key]").dataset.key;
     if ( !this.#expanded.delete(key) ) this.#expanded.add(key);
-    this.render({ parts: ["actions"] });
+    this.render({ parts: [target.closest(".tab").dataset.tab] });
+  }
+
+  static #onAdjustQuantity(event, target) {
+    const item = this.#itemFor(target);
+    if ( !item ) return;
+    const quantity = Math.max(0, (item.system.quantity ?? 0) + Number(target.dataset.delta));
+    item.update({ "system.quantity": quantity });
+  }
+
+  static #onToggleEquipped(event, target) {
+    const item = this.#itemFor(target);
+    item?.update({ "system.equipped": !item.system.equipped });
+  }
+
+  static #onToggleAttuned(event, target) {
+    const item = this.#itemFor(target);
+    item?.update({ "system.attuned": !item.system.attuned });
   }
 
   static #onToggleGroup(event, target) {

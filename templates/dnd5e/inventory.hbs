@@ -1,0 +1,75 @@
+<section class="tab ps-scroll {{tab.cssClass}}" data-group="primary" data-tab="inventory">
+  <div class="ps-currency">
+    {{#each currency}}
+    <label class="ps-coin">
+      <img src="{{icon}}" alt="">
+      <input type="number" inputmode="numeric" min="0" name="{{name}}" value="{{value}}" aria-label="{{abbr}}">
+      <small>{{abbr}}</small>
+    </label>
+    {{/each}}
+  </div>
+
+  {{#if encumbrance}}
+  <div class="ps-encumbrance {{#if encumbrance.encumbered}}encumbered{{/if}}">
+    <div class="ps-encumbrance-label">
+      <span><i class="fa-solid fa-weight-hanging"></i> {{encumbrance.value}}/{{encumbrance.max}}</span>
+      {{#if attunement}}<span><i class="fa-solid fa-sun"></i> {{localize "PHONESHEET.Attuned"}} {{attunement}}</span>{{/if}}
+    </div>
+    <div class="ps-hp-bar"><div style="width: {{encumbrance.pct}}%"></div></div>
+  </div>
+  {{/if}}
+
+  {{#each sections}}
+  <div class="ps-group">
+    <h3 class="ps-heading ps-section-heading">
+      {{#if img}}<img src="{{img}}" alt="">{{/if}}{{localize label}}
+      {{#if capacity}}<span>{{capacity}}</span>{{/if}}
+    </h3>
+    <ul class="ps-list">
+      {{#each rows}}
+      <li class="ps-item {{#if expanded}}expanded{{/if}}" data-key="{{key}}" data-item-id="{{itemId}}">
+        <button type="button" class="ps-row" data-action="toggleInfo">
+          <img src="{{img}}" alt="">
+          <span class="ps-label">
+            {{name}}
+            {{#if weight}}<small class="ps-details">{{weight}}</small>{{/if}}
+          </span>
+          {{#if equipped}}<i class="ps-flag fa-solid fa-shield-halved" data-tooltip="{{localize "PHONESHEET.Equipped"}}"></i>{{/if}}
+          {{#if attuned}}<i class="ps-flag fa-solid fa-sun" data-tooltip="{{localize "PHONESHEET.Attuned"}}"></i>{{/if}}
+          {{#if (ne quantity 1)}}<span class="ps-uses">×{{quantity}}</span>{{/if}}
+        </button>
+        {{#if expanded}}
+        <div class="ps-item-panel">
+          <div class="ps-item-controls">
+            <div class="ps-qty">
+              <button type="button" data-action="adjustQuantity" data-delta="-1" aria-label="−1"><i class="fa-solid fa-minus"></i></button>
+              <span>{{quantity}}</span>
+              <button type="button" data-action="adjustQuantity" data-delta="1" aria-label="+1"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            {{#if canEquip}}
+            <button type="button" class="{{#if equipped}}active{{/if}}" data-action="toggleEquipped">
+              <i class="fa-solid fa-shield-halved"></i> {{localize (ifThen equipped "PHONESHEET.Unequip" "PHONESHEET.Equip")}}
+            </button>
+            {{/if}}
+            {{#if attunement}}
+            <button type="button" class="{{#if attuned}}active{{/if}}" data-action="toggleAttuned">
+              <i class="fa-solid fa-sun"></i> {{localize (ifThen attuned "PHONESHEET.Unattune" "PHONESHEET.Attune")}}
+            </button>
+            {{/if}}
+            {{#each activities}}
+            <button type="button" class="ps-use" data-action="useActivity" data-activity-id="{{id}}">
+              <i class="fa-solid fa-hand-sparkles"></i> {{name}}
+            </button>
+            {{/each}}
+          </div>
+          {{#if description}}<div class="ps-description">{{{description}}}</div>{{/if}}
+        </div>
+        {{/if}}
+      </li>
+      {{else}}
+      <li class="ps-empty-row">{{localize "PHONESHEET.Inventory.Empty"}}</li>
+      {{/each}}
+    </ul>
+  </div>
+  {{/each}}
+</section>

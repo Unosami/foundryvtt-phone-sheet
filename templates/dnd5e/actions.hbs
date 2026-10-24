@@ -27,6 +27,7 @@
             {{name}}{{#if activityName}} <small>· {{activityName}}</small>{{/if}}
             {{#if details}}<small class="ps-details">{{details}}</small>{{/if}}
           </span>
+          {{#if quantity}}<span class="ps-uses">×{{quantity}}</span>{{/if}}
           {{#if uses}}<span class="ps-uses">{{uses}}</span>{{/if}}
         </button>
         <button type="button" class="ps-info {{#if expanded}}active{{/if}}" data-action="toggleInfo"
