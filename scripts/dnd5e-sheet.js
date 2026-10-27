@@ -37,6 +37,76 @@ const INVENTORY_SECTIONS = {
   loot: "PHONESHEET.Inventory.Loot"
 };
 
+/**
+ * Search, filter chips and sort orders for the list tabs. Rows match a chip by its tag; chips in the same
+ * group widen the filter (Weapons or Spells), chips in different groups narrow it (Spells that are Attacks).
+ */
+const LIST_FILTERS = {
+  actions: {
+    placeholder: "PHONESHEET.Search.Actions",
+    chips: [
+      { tag: "weapon", group: "source", label: "PHONESHEET.Source.Weapons", icon: "fa-solid fa-sword" },
+      { tag: "spell", group: "source", label: "PHONESHEET.Source.Spells", icon: "fa-solid fa-wand-sparkles" },
+      { tag: "item", group: "source", label: "PHONESHEET.Source.Items", icon: "fa-solid fa-flask" },
+      { tag: "feature", group: "source", label: "PHONESHEET.Filter.Features", icon: "fa-solid fa-star" },
+      { tag: "attack", group: "attack", label: "PHONESHEET.Filter.Attacks", icon: "fa-solid fa-crosshairs" },
+      { tag: "limited", group: "limited", label: "PHONESHEET.Filter.Limited", icon: "fa-solid fa-battery-half" }
+    ],
+    sorts: [
+      { id: "default", label: "PHONESHEET.Sort.Default" },
+      { id: "name", label: "PHONESHEET.Sort.Name" },
+      // Flat sorts drop the source subsections and rank everything in an action group as one list.
+      { id: "damage", label: "PHONESHEET.Sort.Damage", flat: true },
+      { id: "range", label: "PHONESHEET.Sort.Range", flat: true }
+    ]
+  },
+  inventory: {
+    placeholder: "PHONESHEET.Search.Items",
+    chips: [
+      { tag: "equipped", group: "equipped", label: "PHONESHEET.Equipped", icon: "fa-solid fa-shield-halved" },
+      { tag: "attuned", group: "attuned", label: "PHONESHEET.Attuned", icon: "fa-solid fa-sun" },
+      { tag: "magical", group: "magical", label: "PHONESHEET.Filter.Magical", icon: "fa-solid fa-sparkles" },
+      { tag: "usable", group: "usable", label: "PHONESHEET.Filter.Usable", icon: "fa-solid fa-hand-sparkles" }
+    ],
+    sorts: [
+      { id: "default", label: "PHONESHEET.Sort.Name" },
+      { id: "weight", label: "PHONESHEET.Sort.Weight" }
+    ]
+  },
+  // Spells stay grouped by level; sorting reorders the spells inside each level.
+  spellbook: {
+    placeholder: "PHONESHEET.Search.Spells",
+    chips: [
+      { tag: "action", group: "time", label: "PHONESHEET.Filter.Action" },
+      { tag: "bonus", group: "time", label: "PHONESHEET.Filter.Bonus" },
+      { tag: "reaction", group: "time", label: "PHONESHEET.Filter.Reaction" },
+      { tag: "concentration", group: "concentration", label: "PHONESHEET.Concentration", icon: "fa-solid fa-brain" },
+      { tag: "ritual", group: "ritual", label: "PHONESHEET.Ritual", icon: "fa-solid fa-book-sparkles" },
+      { tag: "prepared", group: "prepared", label: "PHONESHEET.Prepared", icon: "fa-solid fa-book-open" }
+    ],
+    sorts: [
+      { id: "default", label: "PHONESHEET.Sort.Name" },
+      { id: "damage", label: "PHONESHEET.Sort.Damage" },
+      { id: "range", label: "PHONESHEET.Sort.Range" }
+    ]
+  }
+};
+
+const byName = (a, b) => a.dataset.name.localeCompare(b.dataset.name, game.i18n.lang);
+
+/** Row orders, comparing list elements. The default is the order the rows were rendered in. */
+const SORTS = {
+  default: (a, b) => a.dataset.order - b.dataset.order,
+  name: byName,
+  weight: (a, b) => (b.dataset.weight - a.dataset.weight) || byName(a, b),
+  damage: (a, b) => (b.dataset.damage - a.dataset.damage) || byName(a, b),
+  // Two unlimited ranges subtract to NaN, which falls through to the name like a tie.
+  range: (a, b) => (b.dataset.range - a.dataset.range) || byName(a, b)
+};
+
+/** Lowercased text a row is searched by. */
+const searchText = (...parts) => parts.filter(_ => _).join(" ").toLocaleLowerCase(game.i18n.lang);
+
 const PROF_ICONS = {
   0: "fa-regular fa-circle",
   0.5: "fa-solid fa-circle-half-stroke",
@@ -79,6 +149,11 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       endEffect: PhoneSheet5e.#onEndEffect,
       toggleInfo: PhoneSheet5e.#onToggleInfo,
       toggleGroup: PhoneSheet5e.#onToggleGroup,
+      toggleFilters: PhoneSheet5e.#onToggleFilters,
+      toggleFilter: PhoneSheet5e.#onToggleFilter,
+      setSort: PhoneSheet5e.#onSetSort,
+      clearSearch: PhoneSheet5e.#onClearSearch,
+      resetFilters: PhoneSheet5e.#onResetFilters,
       adjustQuantity: PhoneSheet5e.#onAdjustQuantity,
       toggleEquipped: PhoneSheet5e.#onToggleEquipped,
       toggleAttuned: PhoneSheet5e.#onToggleAttuned,
@@ -98,9 +173,13 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     character: { template: `${TEMPLATES}/character.hbs`, templates: [`${TEMPLATES}/encumbrance.hbs`], scrollable: [""] },
     party: { template: `${TEMPLATES}/party.hbs`, scrollable: [""] },
     skills: { template: `${TEMPLATES}/skills.hbs`, scrollable: [""] },
-    actions: { template: `${TEMPLATES}/actions.hbs`, scrollable: [""] },
-    inventory: { template: `${TEMPLATES}/inventory.hbs`, templates: [`${TEMPLATES}/encumbrance.hbs`], scrollable: [""] },
-    spellbook: { template: `${TEMPLATES}/spellbook.hbs`, scrollable: [""] },
+    actions: { template: `${TEMPLATES}/actions.hbs`, templates: [`${TEMPLATES}/filterbar.hbs`], scrollable: [""] },
+    inventory: {
+      template: `${TEMPLATES}/inventory.hbs`,
+      templates: [`${TEMPLATES}/encumbrance.hbs`, `${TEMPLATES}/filterbar.hbs`],
+      scrollable: [""]
+    },
+    spellbook: { template: `${TEMPLATES}/spellbook.hbs`, templates: [`${TEMPLATES}/filterbar.hbs`], scrollable: [""] },
     description: { template: `${TEMPLATES}/description.hbs`, scrollable: [""] },
     nav: { template: `${TEMPLATES}/nav.hbs` }
   };
@@ -135,6 +214,11 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
 
   /** Action groups, action sources and spellbook sections the player has collapsed. */
   #collapsed = new Set();
+
+  /** Search text, filter chips and sort order of each list tab. Kept across renders. */
+  #filters = Object.fromEntries(Object.keys(LIST_FILTERS).map(tab => [tab, {
+    query: "", tags: new Set(), sort: "default", open: false
+  }]));
 
   /** Parts rendered for this actor, so parts for tabs that went away can be removed. */
   #partIds = new Set();
@@ -252,6 +336,11 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
   async _preparePartContext(partId, context, options) {
     context = await super._preparePartContext(partId, context, options);
     context.tab = context.tabs[partId];
+    if ( partId in LIST_FILTERS ) context.filter = {
+      ...LIST_FILTERS[partId],
+      tab: partId,
+      inputId: `${this.id}-search-${partId}`
+    };
     switch ( partId ) {
       case "party": Object.assign(context, await this.#prepareParty()); break;
       case "description": Object.assign(context, await this.#prepareDescription()); break;
@@ -370,6 +459,41 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     return activity.uses?.max ? activity.uses : item.system.uses;
   }
 
+  /** Average damage of the hardest-hitting activity, for sorting. Healing doesn't count. */
+  #averageDamage(activities) {
+    const average = formula => {
+      try {
+        const low = new Roll(formula).evaluateSync({ minimize: true }).total;
+        const high = new Roll(formula).evaluateSync({ maximize: true }).total;
+        return (low + high) / 2;
+      } catch(err) {
+        return 0;
+      }
+    };
+    let best = 0;
+    for ( const activity of activities ) {
+      const parts = (activity.labels?.damage ?? []).filter(d => d.formula && !(d.damageType in CONFIG.DND5E.healingTypes));
+      best = Math.max(best, parts.reduce((total, d) => total + average(d.formula), 0));
+    }
+    return best;
+  }
+
+  /**
+   * Range in feet, for sorting. Melee weapons use their reach and touch counts as 5 feet. Self and
+   * special ranges count as 0, unlimited ranges as the longest.
+   */
+  #rangeFeet(item, activity) {
+    const range = (activity?.range?.override || (item.type !== "weapon")) && activity?.range?.units
+      ? activity.range : item.system.range;
+    const units = range?.units;
+    if ( units in CONFIG.DND5E.movementUnits ) {
+      return dnd5e.utils.convertLength(range.value || range.reach || 0, units, "ft", { strict: false });
+    }
+    if ( units === "touch" ) return 5;
+    if ( units === "any" ) return Infinity;
+    return 0;
+  }
+
   #isDepleted(item, activity) {
     const uses = this.#usesOf(item, activity);
     return (uses?.max && (uses.value <= 0)) || (item.system.quantity === 0);
@@ -407,6 +531,12 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     const uses = this.#usesOf(item, activity);
     const key = `${item.id}.${activity.id}`;
     const expanded = this.#expanded.has(key);
+    const source = this.#actionSource(item);
+    const tags = [["weapon", "spell", "item"].includes(source) ? source : "feature"];
+    if ( labels.toHit || labels.save || damage ) tags.push("attack");
+    if ( uses?.max ) tags.push("limited");
+    const activityName = multiple ? activity.name : null;
+    const detailText = details.filter(_ => _).join(" · ");
     return {
       key,
       itemId: item.id,
@@ -415,8 +545,12 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       level: sys.level ?? 0,
       img: activity.img ?? item.img,
       name: item.name,
-      activityName: multiple ? activity.name : null,
-      details: details.filter(_ => _).join(" · "),
+      activityName,
+      search: searchText(item.name, activityName, detailText),
+      tags: tags.join(" "),
+      sortDamage: this.#averageDamage([activity]),
+      sortRange: this.#rangeFeet(item, activity),
+      details: detailText,
       uses: uses?.max ? `${uses.value ?? 0}/${uses.max}` : null,
       expanded,
       description: expanded ? await this.#enrich(item) : null
@@ -496,11 +630,20 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     const expanded = this.#expanded.has(key);
     const weight = sys.totalWeight;
     const units = CONFIG.DND5E.weightUnits[sys.weight?.units]?.abbreviation;
+    const usable = !!sys.activities?.some(a => a.canUse);
+    const tags = [];
+    if ( sys.equipped ) tags.push("equipped");
+    if ( sys.attuned ) tags.push("attuned");
+    if ( sys.properties?.has("mgc") ) tags.push("magical");
+    if ( usable ) tags.push("usable");
     return {
       key,
       itemId: item.id,
       img: item.img,
       name: item.name,
+      search: searchText(item.name),
+      tags: tags.join(" "),
+      sortWeight: (typeof weight === "number") ? weight : 0,
       quantity: sys.quantity,
       weight: (typeof weight === "number") && (weight > 0)
         ? `${weight.toNearest(0.1)} ${units ? game.i18n.localize(units) : ""}`.trim() : null,
@@ -620,19 +763,32 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     const key = `spell.${spell.id}`;
     const expanded = this.#expanded.has(key);
     const uses = sys.uses;
+    const details = [labels.activation, labels.range, labels.components?.vsm].filter(_ => _).join(" · ");
+    const concentration = sys.properties.has("concentration");
+    const ritual = sys.properties.has("ritual");
+    const prepared = !canPrepare || (sys.prepared > states.unprepared.value);
+    const tags = [];
+    if ( ["action", "bonus", "reaction"].includes(sys.activation?.type) ) tags.push(sys.activation.type);
+    if ( concentration ) tags.push("concentration");
+    if ( ritual ) tags.push("ritual");
+    if ( prepared ) tags.push("prepared");
     return {
       key,
       itemId: spell.id,
       img: spell.img,
       name: spell.name,
+      search: searchText(spell.name, labels.school, details),
+      tags: tags.join(" "),
+      sortDamage: this.#averageDamage(sys.activities ?? []),
+      sortRange: this.#rangeFeet(spell, null),
       level: sys.level,
       school: labels.school,
-      details: [labels.activation, labels.range, labels.components?.vsm].filter(_ => _).join(" · "),
-      concentration: sys.properties.has("concentration"),
-      ritual: sys.properties.has("ritual"),
+      details,
+      concentration,
+      ritual,
       canPrepare,
       always: canPrepare && (sys.prepared === states.always.value),
-      prepared: !canPrepare || (sys.prepared > states.unprepared.value),
+      prepared,
       uses: uses?.max ? `${uses.value ?? 0}/${uses.max}` : null,
       expanded,
       extra: expanded ? [labels.concentrationDuration ?? labels.duration, labels.components?.full].filter(_ => _) : null,
@@ -871,6 +1027,158 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     for ( const element of this.element.querySelectorAll("[data-application-part]") ) {
       if ( !this.#partIds.has(element.dataset.applicationPart) ) element.remove();
     }
+    for ( const partId of options.parts ) {
+      if ( (partId in LIST_FILTERS) && this.#partIds.has(partId) ) this.#activateFilterBar(partId);
+    }
+  }
+
+  /* -------------------------------------------- */
+  /*  Search and filters                          */
+  /* -------------------------------------------- */
+
+  /** The section and filter bar of a list tab. */
+  #filterElements(tab) {
+    const section = this.element.querySelector(`.tab[data-group="primary"][data-tab="${tab}"]`);
+    return { section, bar: section?.querySelector(".ps-filterbar") };
+  }
+
+  /** Hook up a freshly rendered filter bar, and filter its tab the way it was before the render. */
+  #activateFilterBar(tab) {
+    const { section, bar } = this.#filterElements(tab);
+    if ( !bar ) return;
+    const state = this.#filters[tab];
+    const input = bar.querySelector("input");
+    input.value = state.query;
+    input.addEventListener("input", () => {
+      state.query = input.value;
+      this.#applyFilters(tab);
+    });
+    input.addEventListener("keydown", event => {
+      // Enter would submit the sheet's form. Close the keyboard instead, so the results are in view.
+      if ( event.key === "Enter" ) {
+        event.preventDefault();
+        input.blur();
+      }
+      else if ( event.key === "Escape" ) PhoneSheet5e.#onClearSearch.call(this, event, input);
+    });
+    // The search box isn't actor data; keep the form from submitting on it.
+    input.addEventListener("change", event => event.stopPropagation());
+
+    // Tuck the bar away while scrolling down the list and bring it back on the way up.
+    let lastY = section.scrollTop;
+    section.addEventListener("scroll", () => {
+      const y = section.scrollTop;
+      const dy = y - lastY;
+      if ( Math.abs(dy) < 8 ) return;
+      lastY = y;
+      const keep = (dy < 0) || (y < bar.offsetHeight) || state.open || bar.contains(document.activeElement);
+      bar.classList.toggle("ps-tucked", !keep);
+    }, { passive: true });
+
+    this.#applyFilters(tab);
+  }
+
+  /** Show the rows of a tab that match its search and chips, in its sort order, and update the bar to match. */
+  #applyFilters(tab) {
+    const { section, bar } = this.#filterElements(tab);
+    if ( !bar ) return;
+    const state = this.#filters[tab];
+    const config = LIST_FILTERS[tab];
+
+    // Update the bar.
+    const count = state.tags.size + (state.sort === "default" ? 0 : 1);
+    bar.classList.toggle("open", state.open);
+    bar.querySelector(".ps-search-clear").hidden = !state.query;
+    const toggle = bar.querySelector(".ps-filter-toggle");
+    toggle.classList.toggle("active", !!count);
+    toggle.setAttribute("aria-expanded", String(state.open));
+    const badge = bar.querySelector(".ps-filter-badge");
+    badge.textContent = count;
+    badge.hidden = !count;
+    for ( const chip of bar.querySelectorAll("[data-tag]") ) {
+      const active = state.tags.has(chip.dataset.tag);
+      chip.classList.toggle("active", active);
+      chip.setAttribute("aria-pressed", String(active));
+    }
+    for ( const button of bar.querySelectorAll("[data-sort]") ) {
+      button.classList.toggle("active", button.dataset.sort === state.sort);
+    }
+    bar.querySelector(".ps-filter-reset").hidden = !count;
+
+    // Filter the rows. A row needs one matching chip from each group the player picked from.
+    const query = state.query.trim().toLocaleLowerCase(game.i18n.lang);
+    const groups = new Map();
+    for ( const { tag, group } of config.chips ) {
+      if ( !state.tags.has(tag) ) continue;
+      if ( !groups.has(group) ) groups.set(group, []);
+      groups.get(group).push(tag);
+    }
+    const filtering = !!query || (groups.size > 0);
+    section.classList.toggle("ps-filtering", filtering);
+    for ( const row of section.querySelectorAll("[data-search]") ) {
+      const tags = row.dataset.tags.split(" ");
+      row.hidden = (!!query && !row.dataset.search.includes(query))
+        || groups.values().some(wanted => !wanted.some(t => tags.includes(t)));
+    }
+
+    // Flat sorts gather each group's rows into its own list; other sorts send them back to their subsection.
+    const flat = !!config.sorts.find(s => s.id === state.sort)?.flat;
+    section.classList.toggle("ps-flat", flat);
+    for ( const row of section.querySelectorAll("[data-home]") ) {
+      const list = flat ? row.closest(".ps-group").querySelector(":scope > .ps-flat-list")
+        : section.querySelector(`.ps-list[data-list="${row.dataset.home}"]`);
+      if ( list && (row.parentElement !== list) ) list.append(row);
+    }
+
+    // Sort the rows inside each list.
+    const compare = SORTS[state.sort] ?? SORTS.default;
+    for ( const list of section.querySelectorAll(".ps-list") ) {
+      const rows = Array.from(list.children).filter(li => li.dataset.search !== undefined);
+      list.append(...rows.sort(compare));
+    }
+
+    // Hide sections with nothing left in them, and count what's left in the ones that stay.
+    for ( const group of section.querySelectorAll("[data-filter-group]") ) {
+      const visible = group.querySelectorAll("[data-search]:not([hidden])").length;
+      group.hidden = filtering && !visible;
+      const counter = group.querySelector(":scope > button .ps-count");
+      if ( counter ) counter.textContent = visible;
+    }
+    section.querySelector(".ps-no-match").hidden = !filtering
+      || !!section.querySelector("[data-search]:not([hidden])");
+  }
+
+  static #onToggleFilters(event, target) {
+    const tab = target.closest(".tab").dataset.tab;
+    this.#filters[tab].open = !this.#filters[tab].open;
+    this.#applyFilters(tab);
+  }
+
+  static #onToggleFilter(event, target) {
+    const tab = target.closest(".tab").dataset.tab;
+    const { tags } = this.#filters[tab];
+    if ( !tags.delete(target.dataset.tag) ) tags.add(target.dataset.tag);
+    this.#applyFilters(tab);
+  }
+
+  static #onSetSort(event, target) {
+    const tab = target.closest(".tab").dataset.tab;
+    this.#filters[tab].sort = target.dataset.sort;
+    this.#applyFilters(tab);
+  }
+
+  static #onClearSearch(event, target) {
+    const tab = target.closest(".tab").dataset.tab;
+    this.#filters[tab].query = "";
+    this.#filterElements(tab).bar.querySelector("input").value = "";
+    this.#applyFilters(tab);
+  }
+
+  static #onResetFilters(event, target) {
+    const tab = target.closest(".tab").dataset.tab;
+    this.#filters[tab].tags.clear();
+    this.#filters[tab].sort = "default";
+    this.#applyFilters(tab);
   }
 
   async _onFirstRender(context, options) {

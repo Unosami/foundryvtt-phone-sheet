@@ -1,0 +1,40 @@
+<div class="ps-filterbar">
+  <div class="ps-filterbar-row">
+    <div class="ps-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" id="{{filter.inputId}}" placeholder="{{localize filter.placeholder}}"
+             aria-label="{{localize filter.placeholder}}" enterkeyhint="search"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button type="button" class="ps-search-clear" data-action="clearSearch" hidden
+              aria-label="{{localize "PHONESHEET.ClearSearch"}}">
+        <i class="fa-solid fa-circle-xmark"></i>
+      </button>
+    </div>
+    <button type="button" class="ps-filter-toggle" data-action="toggleFilters" aria-expanded="false"
+            aria-label="{{localize "PHONESHEET.Filters"}}">
+      <i class="fa-solid fa-sliders"></i><span class="ps-filter-badge" hidden></span>
+    </button>
+  </div>
+  <div class="ps-filter-panel">
+    <div class="ps-chips">
+      {{#each filter.chips}}
+      <button type="button" class="ps-filter-chip" data-action="toggleFilter" data-tag="{{tag}}" aria-pressed="false">
+        {{#if icon}}<i class="{{icon}}"></i>{{/if}}{{localize label}}
+      </button>
+      {{/each}}
+    </div>
+    <div class="ps-sorts">
+      {{#if filter.sorts.length}}
+      <span>{{localize "PHONESHEET.SortBy"}}</span>
+      <div class="ps-segmented">
+        {{#each filter.sorts}}
+        <button type="button" data-action="setSort" data-sort="{{id}}">{{localize label}}</button>
+        {{/each}}
+      </div>
+      {{/if}}
+      <button type="button" class="ps-filter-reset" data-action="resetFilters" hidden>
+        {{localize "PHONESHEET.ResetFilters"}}
+      </button>
+    </div>
+  </div>
+</div>

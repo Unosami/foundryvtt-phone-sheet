@@ -1,4 +1,6 @@
-<section class="tab ps-scroll {{tab.cssClass}}" data-group="primary" data-tab="inventory">
+<section class="tab ps-scroll ps-has-filter {{tab.cssClass}}" data-group="primary" data-tab="inventory">
+  {{> "modules/phone-sheet/templates/dnd5e/filterbar.hbs"}}
+
   <div class="ps-currency">
     {{#each currency}}
     <label class="ps-coin">
@@ -12,16 +14,16 @@
   {{> "modules/phone-sheet/templates/dnd5e/encumbrance.hbs"}}
 
   {{#each sections}}
-  <div class="ps-group {{#if collapsed}}collapsed{{/if}}">
+  <div class="ps-group {{#if collapsed}}collapsed{{/if}}" data-filter-group>
     <button type="button" class="ps-heading ps-section-heading" data-action="toggleGroup" data-id="inventory.{{id}}">
       {{#if img}}<img src="{{img}}" alt="">{{/if}}{{localize label}}<span class="ps-count">{{rows.length}}</span>
       {{#if capacity}}<span class="ps-capacity">{{capacity}}</span>{{/if}}
       <i class="fa-solid fa-chevron-down"></i>
     </button>
-    {{#unless collapsed}}
     <ul class="ps-list">
       {{#each rows}}
-      <li class="ps-item {{#if expanded}}expanded{{/if}}" data-key="{{key}}" data-item-id="{{itemId}}">
+      <li class="ps-item {{#if expanded}}expanded{{/if}}" data-key="{{key}}" data-item-id="{{itemId}}"
+          data-search="{{search}}" data-tags="{{tags}}" data-name="{{name}}" data-weight="{{sortWeight}}" data-order="{{@index}}">
         <button type="button" class="ps-row" data-action="toggleInfo">
           <img src="{{img}}" alt="">
           <span class="ps-label">
@@ -64,7 +66,7 @@
       <li class="ps-empty-row">{{localize "PHONESHEET.Inventory.Empty"}}</li>
       {{/each}}
     </ul>
-    {{/unless}}
   </div>
   {{/each}}
+  <p class="ps-empty ps-no-match" hidden>{{localize "PHONESHEET.NoMatches"}}</p>
 </section>

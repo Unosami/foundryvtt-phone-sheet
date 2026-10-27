@@ -66,6 +66,7 @@ Hooks.once("ready", () => {
     openActor: openSheet,
     exit: exitPhoneMode
   };
+  hideResolutionWarning();
   buildToolbar();
   openSheet(defaultActor());
   preloadChat();
@@ -73,6 +74,19 @@ Hooks.once("ready", () => {
   keepScreenAwake();
   watchDialogs();
 });
+
+/**
+ * Drop core's "screen too small" error, which every phone fails. Core checks right after the ready hook
+ * and again on every resize (rotating the phone), from a private method, so filter the notification itself.
+ */
+function hideResolutionWarning() {
+  const notifications = ui.notifications;
+  const error = notifications.error;
+  notifications.error = function(message, ...args) {
+    if ( (typeof message === "string") && message.startsWith("ERROR.RESOLUTION.") ) return;
+    return error.call(this, message, ...args);
+  };
+}
 
 /** Pop-ups: any window other than the phone sheet, the full-screen sheets and chat. */
 const DIALOG_SELECTOR = `.application:not(.${WINDOW_CLASS}, .phone-sheet-app), .app.window-app:not(.${WINDOW_CLASS})`;

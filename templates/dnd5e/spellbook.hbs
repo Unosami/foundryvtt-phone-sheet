@@ -1,4 +1,6 @@
-<section class="tab ps-scroll ps-spellbook {{tab.cssClass}}" data-group="primary" data-tab="spellbook">
+<section class="tab ps-scroll ps-spellbook ps-has-filter {{tab.cssClass}}" data-group="primary" data-tab="spellbook">
+  {{> "modules/phone-sheet/templates/dnd5e/filterbar.hbs"}}
+
   {{#if casting.length}}
   <div class="ps-casting">
     <div class="ps-sigil" aria-hidden="true"><i class="fa-solid fa-wand-sparkles"></i></div>
@@ -23,7 +25,7 @@
   {{/each}}
 
   {{#each sections}}
-  <div class="ps-spell-level {{#if collapsed}}collapsed{{/if}}">
+  <div class="ps-spell-level {{#if collapsed}}collapsed{{/if}}" data-filter-group>
     <div class="ps-spell-level-header">
       <button type="button" class="ps-spell-level-title" data-action="toggleGroup" data-id="{{id}}">
         <span>{{label}}</span><i class="fa-solid fa-chevron-down"></i>
@@ -40,11 +42,12 @@
       </span>
       {{/if}}
     </div>
-    {{#unless collapsed}}
     <ul class="ps-list">
       {{#each rows}}
       <li class="ps-spell {{#if canPrepare}}preparable{{/if}} {{#unless prepared}}unprepared{{/unless}} {{#if expanded}}expanded{{/if}}"
-          data-key="{{key}}" data-item-id="{{itemId}}">
+          data-key="{{key}}" data-item-id="{{itemId}}"
+          data-search="{{search}}" data-tags="{{tags}}" data-name="{{name}}" data-damage="{{sortDamage}}" data-range="{{sortRange}}"
+            data-order="{{@index}}">
         <button type="button" class="ps-row" data-action="castSpell">
           <img src="{{img}}" alt="">
           <span class="ps-label">
@@ -76,7 +79,7 @@
       </li>
       {{/each}}
     </ul>
-    {{/unless}}
   </div>
   {{/each}}
+  <p class="ps-empty ps-no-match" hidden>{{localize "PHONESHEET.NoMatches"}}</p>
 </section>
