@@ -70,7 +70,8 @@ const LIST_FILTERS = {
     ],
     sorts: [
       { id: "default", label: "PHONESHEET.Sort.Name" },
-      { id: "weight", label: "PHONESHEET.Sort.Weight" }
+      { id: "weight", label: "PHONESHEET.Sort.Weight" },
+      { id: "combat", label: "PHONESHEET.Sort.Combat" }
     ]
   },
   // Spells stay grouped by level; sorting reorders the spells inside each level.
@@ -100,9 +101,42 @@ const SORTS = {
   name: byName,
   weight: (a, b) => (b.dataset.weight - a.dataset.weight) || byName(a, b),
   damage: (a, b) => (b.dataset.damage - a.dataset.damage) || byName(a, b),
+  combat: (a, b) => (b.dataset.combat - a.dataset.combat) || byName(a, b),
   // Two unlimited ranges subtract to NaN, which falls through to the name like a tie.
   range: (a, b) => (b.dataset.range - a.dataset.range) || byName(a, b)
 };
+
+/** Average result of a roll formula, or 0 if it can't be worked out without rolling. */
+const averageRoll = formula => {
+  if ( !formula ) return 0;
+  try {
+    const low = new Roll(formula).evaluateSync({ minimize: true }).total;
+    const high = new Roll(formula).evaluateSync({ maximize: true }).total;
+    return Number.isFinite(low + high) ? (low + high) / 2 : 0;
+  } catch(err) {
+    return 0;
+  }
+};
+
+/**
+ * Rates for the inventory's combat value sort, in damage per round. The target is a typical foe:
+ * AC 15 and a +3 saving throw.
+ */
+const COMBAT_WEIGHTS = {
+  targetAC: 15,
+  targetSave: 3,
+  healing: 0.5,
+  ac: 1.5,
+  unproficientArmor: 4,
+  attack: 0.5,
+  save: 1,
+  spellDC: 1,
+  resistance: 2,
+  immunity: 3
+};
+
+/** Chance to hit the typical foe with an attack bonus, with natural 1s missing and 20s hitting. */
+const hitChance = bonus => Math.clamp((21 + bonus - COMBAT_WEIGHTS.targetAC) / 20, 0.05, 0.95);
 
 /** Lowercased text a row is searched by. */
 const searchText = (...parts) => parts.filter(_ => _).join(" ").toLocaleLowerCase(game.i18n.lang);
@@ -459,23 +493,123 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     return activity.uses?.max ? activity.uses : item.system.uses;
   }
 
-  /** Average damage of the hardest-hitting activity, for sorting. Healing doesn't count. */
-  #averageDamage(activities) {
-    const average = formula => {
-      try {
-        const low = new Roll(formula).evaluateSync({ minimize: true }).total;
-        const high = new Roll(formula).evaluateSync({ maximize: true }).total;
-        return (low + high) / 2;
-      } catch(err) {
-        return 0;
-      }
-    };
+  /** Average damage of the hardest-hitting activity, for sorting. Healing doesn't count, unless it's asked for. */
+  #averageDamage(activities, { healing=false }={}) {
     let best = 0;
     for ( const activity of activities ) {
-      const parts = (activity.labels?.damage ?? []).filter(d => d.formula && !(d.damageType in CONFIG.DND5E.healingTypes));
-      best = Math.max(best, parts.reduce((total, d) => total + average(d.formula), 0));
+      const parts = (activity.labels?.damage ?? [])
+        .filter(d => d.formula && ((d.damageType in CONFIG.DND5E.healingTypes) === healing));
+      best = Math.max(best, parts.reduce((total, d) => total + averageRoll(d.formula), 0));
     }
     return best;
+  }
+
+  /**
+   * How much an item helps in a fight, for sorting the inventory. Everything is scored in damage per round:
+   * the expected damage of its best attack or effect, healing at half value, and its armor and magic bonuses
+   * converted at the rates in COMBAT_WEIGHTS. Also returns the facts behind the score, for the item's row.
+   * @returns {{score: number, details: string[]}}
+   */
+  #combatValue(item) {
+    const sys = item.system;
+    const actor = this.document;
+    let offense = 0;
+    let healing = 0;
+    let best = null;
+    let bestHeal = null;
+    for ( const activity of sys.activities ?? [] ) {
+      const heal = this.#averageDamage([activity], { healing: true });
+      if ( heal > healing ) [healing, bestHeal] = [heal, activity];
+      const damage = this.#averageDamage([activity]);
+      if ( !damage ) continue;
+      let chance = 1;
+      if ( activity.type === "attack" ) chance = hitChance(parseInt(activity.labels?.toHit) || 0);
+      else if ( (activity.type === "save") && activity.save?.dc?.value ) {
+        const fail = Math.clamp((activity.save.dc.value - 1 - COMBAT_WEIGHTS.targetSave) / 20, 0.05, 0.95);
+        const onSave = { half: 0.5, full: 1 }[activity.damage?.onSave] ?? 0;
+        chance = fail + ((1 - fail) * onSave);
+      }
+      if ( damage * chance > offense ) [offense, best] = [damage * chance, activity];
+    }
+    let score = offense + (healing * COMBAT_WEIGHTS.healing);
+
+    // The best attack or healing, shown the way the Actions tab shows it.
+    const details = [];
+    const shown = best ?? bestHeal;
+    if ( shown ) {
+      const labels = shown.labels ?? {};
+      if ( labels.toHit ) details.push(game.i18n.format("PHONESHEET.ToHit", { bonus: labels.toHit }));
+      if ( labels.save ) details.push(labels.save);
+      const damage = labels.damage?.map(d => d.label).filter(_ => _).join(", ");
+      if ( damage ) details.push(damage);
+      if ( labels.range ) details.push(labels.range);
+    }
+
+    // Armor and shields, by the AC this character would get from them.
+    const armorType = sys.type?.value;
+    if ( (item.type === "equipment") && (armorType in CONFIG.DND5E.armorTypes) && sys.armor?.value ) {
+      let ac = sys.armor.value;
+      if ( ["light", "medium"].includes(armorType) ) {
+        ac += Math.min(sys.armor.dex ?? Infinity, actor.system.abilities?.dex?.mod ?? 0);
+      }
+      // Wearing armor without proficiency means disadvantage on attacks and no spellcasting.
+      if ( sys.proficiencyMultiplier === 0 ) ac -= COMBAT_WEIGHTS.unproficientArmor;
+      // Too heavy to wear without slowing down.
+      if ( sys.strength && ((actor.system.abilities?.str?.value ?? 0) < sys.strength) ) ac -= 1;
+      score += ac * COMBAT_WEIGHTS.ac;
+      // Shields add to AC, armor sets it; show the AC as this character would have it, before penalties.
+      details.push(armorType === "shield"
+        ? game.i18n.format("PHONESHEET.Combat.ACBonus", { bonus: signed(sys.armor.value) })
+        : game.i18n.format("PHONESHEET.Combat.AC", {
+          ac: sys.armor.value + (["light", "medium"].includes(armorType)
+            ? Math.min(sys.armor.dex ?? Infinity, actor.system.abilities?.dex?.mod ?? 0) : 0)
+        }));
+    }
+
+    // Bonuses the item grants through its effects, like a Ring of Protection. They need attunement first.
+    if ( (sys.attunement === "required") && !sys.attuned ) return { score, details };
+    const shownBonus = (key, value) => {
+      const number = Number(value);
+      details.push(game.i18n.format(key, { bonus: Number.isFinite(number) ? signed(number) : value }));
+    };
+    const damageType = value => game.i18n.localize(CONFIG.DND5E.damageTypes[value]?.label ?? value);
+    for ( const effect of item.effects ?? [] ) {
+      if ( !effect.transfer || effect.disabled ) continue;
+      for ( const { key, value } of effect.system?.changes ?? effect.changes ?? [] ) {
+        const number = Number(value);
+        const bonus = Number.isFinite(number) ? number : averageRoll(String(value ?? ""));
+        if ( /\.attributes\.ac\.bonus$/.test(key) ) {
+          score += bonus * COMBAT_WEIGHTS.ac;
+          shownBonus("PHONESHEET.Combat.ACBonus", value);
+        }
+        else if ( /\.bonuses\.abilities\.save$/.test(key) ) {
+          score += bonus * COMBAT_WEIGHTS.save;
+          shownBonus("PHONESHEET.Combat.Saves", value);
+        }
+        else if ( /\.bonuses\.[mr][ws]ak\.attack$/.test(key) ) {
+          score += bonus * COMBAT_WEIGHTS.attack;
+          shownBonus("PHONESHEET.Combat.Attacks", value);
+        }
+        else if ( /\.bonuses\.[mr][ws]ak\.damage$/.test(key) ) {
+          score += bonus;
+          shownBonus("PHONESHEET.Combat.Damage", value);
+        }
+        else if ( /\.bonuses\.spell\.dc$/.test(key) ) {
+          score += bonus * COMBAT_WEIGHTS.spellDC;
+          shownBonus("PHONESHEET.Combat.SpellDC", value);
+        }
+        else if ( /\.traits\.dr\.value$/.test(key) ) {
+          score += COMBAT_WEIGHTS.resistance;
+          details.push(game.i18n.format("PHONESHEET.Combat.Resist", { type: damageType(value) }));
+        }
+        else if ( /\.traits\.di\.value$/.test(key) ) {
+          score += COMBAT_WEIGHTS.immunity;
+          details.push(game.i18n.format("PHONESHEET.Combat.Immune", { type: damageType(value) }));
+        }
+      }
+    }
+    // One ring adding to both melee and ranged attacks shows up once.
+    return { score, details: [...new Set(details)] };
   }
 
   /**
@@ -636,17 +770,21 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     if ( sys.attuned ) tags.push("attuned");
     if ( sys.properties?.has("mgc") ) tags.push("magical");
     if ( usable ) tags.push("usable");
+    const combat = this.#combatValue(item);
+    const weightLabel = (typeof weight === "number") && (weight > 0)
+      ? `${weight.toNearest(0.1)} ${units ? game.i18n.localize(units) : ""}`.trim() : null;
+    const details = [...combat.details, weightLabel].filter(_ => _).join(" · ");
     return {
       key,
       itemId: item.id,
       img: item.img,
       name: item.name,
-      search: searchText(item.name),
+      search: searchText(item.name, details),
       tags: tags.join(" "),
       sortWeight: (typeof weight === "number") ? weight : 0,
+      sortCombat: combat.score.toNearest(0.01),
       quantity: sys.quantity,
-      weight: (typeof weight === "number") && (weight > 0)
-        ? `${weight.toNearest(0.1)} ${units ? game.i18n.localize(units) : ""}`.trim() : null,
+      details,
       canEquip: typeof sys.equipped === "boolean",
       equipped: sys.equipped,
       attunement: sys.attunement ? CONFIG.DND5E.attunementTypes[sys.attunement] : null,

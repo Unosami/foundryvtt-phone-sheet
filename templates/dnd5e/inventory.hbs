@@ -23,12 +23,12 @@
     <ul class="ps-list">
       {{#each rows}}
       <li class="ps-item {{#if expanded}}expanded{{/if}}" data-key="{{key}}" data-item-id="{{itemId}}"
-          data-search="{{search}}" data-tags="{{tags}}" data-name="{{name}}" data-weight="{{sortWeight}}" data-order="{{@index}}">
+          data-search="{{search}}" data-tags="{{tags}}" data-name="{{name}}" data-weight="{{sortWeight}}" data-combat="{{sortCombat}}" data-order="{{@index}}">
         <button type="button" class="ps-row" data-action="toggleInfo">
           <img src="{{img}}" alt="">
           <span class="ps-label">
             {{name}}
-            {{#if weight}}<small class="ps-details">{{weight}}</small>{{/if}}
+            {{#if details}}<small class="ps-details">{{details}}</small>{{/if}}
           </span>
           {{#if equipped}}<i class="ps-flag fa-solid fa-shield-halved" data-tooltip="{{localize "PHONESHEET.Equipped"}}"></i>{{/if}}
           {{#if attuned}}<i class="ps-flag fa-solid fa-sun" data-tooltip="{{localize "PHONESHEET.Attuned"}}"></i>{{/if}}

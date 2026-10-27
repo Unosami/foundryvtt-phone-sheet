@@ -129,9 +129,18 @@
   "PHONESHEET.SortBy": "Sort",
   "PHONESHEET.Sort.Default": "Default",
   "PHONESHEET.Sort.Name": "A–Z",
-  "PHONESHEET.Sort.Weight": "Heaviest",
+  "PHONESHEET.Sort.Weight": "Weight",
   "PHONESHEET.ResetFilters": "Reset",
   "PHONESHEET.NoMatches": "Nothing matches.",
   "PHONESHEET.Sort.Damage": "Damage",
-  "PHONESHEET.Sort.Range": "Range"
+  "PHONESHEET.Sort.Range": "Range",
+  "PHONESHEET.Sort.Combat": "Combat",
+  "PHONESHEET.Combat.AC": "AC {ac}",
+  "PHONESHEET.Combat.ACBonus": "{bonus} AC",
+  "PHONESHEET.Combat.Saves": "{bonus} saves",
+  "PHONESHEET.Combat.Attacks": "{bonus} attacks",
+  "PHONESHEET.Combat.Damage": "{bonus} damage",
+  "PHONESHEET.Combat.SpellDC": "{bonus} spell DC",
+  "PHONESHEET.Combat.Resist": "Resist {type}",
+  "PHONESHEET.Combat.Immune": "Immune to {type}"
 }
