@@ -51,9 +51,6 @@ the player's character. GMs on a desktop can use **Game Invitation Links** to sh
 
 ## Notes
 
-dnd5e has no free action type. A Special activation whose condition mentions "free" or "no action" is listed
-under Free Actions.
-
 An activity that overrides its item's activation with a blank one (some importers do this) is grouped by the item's
 activation instead.
 
