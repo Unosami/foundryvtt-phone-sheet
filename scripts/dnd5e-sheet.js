@@ -758,6 +758,24 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
     };
   }
 
+  /**
+   * The attunement icon next to a magic item's name: attuned, waiting on attunement before it works,
+   * or magical without needing it. Items that can be attuned but work without it count as not needing it.
+   */
+  #attunementFlag(item) {
+    const sys = item.system;
+    let state = null;
+    if ( sys.attuned ) state = "attuned";
+    else if ( sys.attunement === "required" ) state = "required";
+    else if ( sys.properties?.has("mgc") ) state = "none";
+    if ( !state ) return null;
+    return {
+      state,
+      icon: { attuned: "fa-solid fa-sun", required: "fa-regular fa-sun", none: "fa-solid fa-sparkles" }[state],
+      label: `PHONESHEET.Attunement.${state.capitalize()}`
+    };
+  }
+
   async #prepareInventoryRow(item) {
     const sys = item.system;
     const key = `inv.${item.id}`;
@@ -789,6 +807,7 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       equipped: sys.equipped,
       attunement: sys.attunement ? CONFIG.DND5E.attunementTypes[sys.attunement] : null,
       attuned: sys.attuned,
+      attunementFlag: this.#attunementFlag(item),
       expanded,
       activities: expanded ? (sys.activities?.filter(a => a.canUse).map(a => ({ id: a.id, name: a.name })) ?? []) : [],
       description: expanded ? await this.#enrich(item) : null

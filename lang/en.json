@@ -142,5 +142,10 @@
   "PHONESHEET.Combat.Damage": "{bonus} damage",
   "PHONESHEET.Combat.SpellDC": "{bonus} spell DC",
   "PHONESHEET.Combat.Resist": "Resist {type}",
-  "PHONESHEET.Combat.Immune": "Immune to {type}"
+  "PHONESHEET.Combat.Immune": "Immune to {type}",
+  "PHONESHEET.Attunement.Attuned": "Attuned",
+  "PHONESHEET.Attunement.Required": "Requires attunement",
+  "PHONESHEET.Attunement.None": "Magical, no attunement needed",
+  "PHONESHEET.Key.Required": "Needs attunement",
+  "PHONESHEET.Key.None": "No attunement needed"
 }

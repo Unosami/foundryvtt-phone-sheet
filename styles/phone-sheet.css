@@ -698,6 +698,25 @@ body.phone-sheet-chat #phone-sheet-toolbar .ps-chat-button { color: var(--ps-acc
   border-radius: 6px;
 }
 .ps-flag { flex: none; color: var(--ps-accent); font-size: 0.85em; }
+/* Attunement: lit when attuned, an empty outline while it still needs attuning, faint sparkles when it doesn't need it. */
+.ps-attunement.required { color: var(--ps-muted); }
+.ps-attunement.none { color: var(--ps-muted); opacity: 0.8; }
+
+/* What the row icons mean, at the bottom of the inventory. */
+.ps-flag-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  margin: 24px 0 0;
+  padding: 10px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--ps-border);
+  color: var(--ps-muted);
+  font-size: 0.75em;
+}
+.ps-flag-key li { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.ps-flag-key .ps-flag { width: 1.1em; text-align: center; }
 .phone-sheet-app .ps-item.expanded > .ps-row { border-color: var(--ps-accent); }
 .ps-item-panel {
   margin-top: 4px;

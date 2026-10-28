@@ -30,8 +30,11 @@
             {{name}}
             {{#if details}}<small class="ps-details">{{details}}</small>{{/if}}
           </span>
-          {{#if equipped}}<i class="ps-flag fa-solid fa-shield-halved" data-tooltip="{{localize "PHONESHEET.Equipped"}}"></i>{{/if}}
-          {{#if attuned}}<i class="ps-flag fa-solid fa-sun" data-tooltip="{{localize "PHONESHEET.Attuned"}}"></i>{{/if}}
+          {{#if equipped}}<i class="ps-flag fa-solid fa-shield-halved" data-tooltip="{{localize "PHONESHEET.Equipped"}}" aria-label="{{localize "PHONESHEET.Equipped"}}" role="img"></i>{{/if}}
+          {{#with attunementFlag}}
+          <i class="ps-flag ps-attunement {{state}} {{icon}}" data-tooltip="{{localize label}}" aria-label="{{localize label}}"
+             role="img"></i>
+          {{/with}}
           {{#if (ne quantity 1)}}<span class="ps-uses">×{{quantity}}</span>{{/if}}
         </button>
         {{#if expanded}}
@@ -68,5 +71,11 @@
     </ul>
   </div>
   {{/each}}
+  <ul class="ps-flag-key">
+    <li><i class="ps-flag fa-solid fa-shield-halved"></i>{{localize "PHONESHEET.Equipped"}}</li>
+    <li><i class="ps-flag ps-attunement attuned fa-solid fa-sun"></i>{{localize "PHONESHEET.Attunement.Attuned"}}</li>
+    <li><i class="ps-flag ps-attunement required fa-regular fa-sun"></i>{{localize "PHONESHEET.Key.Required"}}</li>
+    <li><i class="ps-flag ps-attunement none fa-solid fa-sparkles"></i>{{localize "PHONESHEET.Key.None"}}</li>
+  </ul>
   <p class="ps-empty ps-no-match" hidden>{{localize "PHONESHEET.NoMatches"}}</p>
 </section>
