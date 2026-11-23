@@ -47,6 +47,16 @@ export function initInviteQR() {
   });
 }
 
+/**
+ * Open the Game Invitation Links window, with its QR codes, from a phone. Core only offers it to the GM,
+ * but every client is sent the addresses, so a player's phone can show a code for the next person to scan.
+ */
+export function showInvite() {
+  const { local, remote } = game.data.addresses ?? {};
+  if ( !local && !remote ) return ui.notifications.warn("PHONESHEET.QR.None", { localize: true });
+  new foundry.applications.sidebar.apps.InvitationLinks().render({ force: true });
+}
+
 function qrFigure(url, caption) {
   const qr = qrcode(0, "M");
   qr.addData(url);

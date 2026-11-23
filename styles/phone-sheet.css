@@ -1160,6 +1160,9 @@ body.phone-sheet-chat #phone-sheet-toolbar .ps-chat-button { color: var(--ps-acc
 #invitation-links .phone-sheet-qr svg { width: 160px; height: 160px; display: block; border-radius: 6px; }
 #invitation-links .phone-sheet-qr figcaption { margin-top: 4px; font-size: var(--font-size-12); color: var(--color-text-secondary); }
 #invitation-links .phone-sheet-qr button { width: auto; }
+/* On a phone there's no room for both codes side by side: show only the sharp one, large. */
+body.phone-sheet #invitation-links .phone-sheet-qr figure.blurred { display: none; }
+body.phone-sheet #invitation-links .phone-sheet-qr svg { width: min(240px, 70vw); height: min(240px, 70vw); }
 
 /* ---------------------------------------- */
 /*  Search and filters                      */

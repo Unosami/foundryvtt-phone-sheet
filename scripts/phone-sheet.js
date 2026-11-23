@@ -1,6 +1,6 @@
 import PhoneSheet5e from "./dnd5e-sheet.js";
 import { hideChat, preloadChat, toggleChat } from "./chat.js";
-import { initInviteQR } from "./invite-qr.js";
+import { initInviteQR, showInvite } from "./invite-qr.js";
 import { initRollToasts } from "./roll-toast.js";
 
 const MODULE_ID = "phone-sheet";
@@ -64,6 +64,7 @@ Hooks.once("ready", () => {
     fullSheet: actor => renderSheet(actor.sheet),
     switchCharacter: chooseActor,
     openActor: openSheet,
+    invite: showInvite,
     exit: exitPhoneMode
   };
   hideResolutionWarning();
@@ -211,6 +212,7 @@ function buildToolbar() {
     ["fa-solid fa-id-card", "PHONESHEET.Sheet", () => { hideChat(); openSheet(current ?? defaultActor()); }],
     ["fa-solid fa-comments", "PHONESHEET.Chat", toggleChat, "ps-chat-button"],
     ["fa-solid fa-users", "PHONESHEET.Switch", chooseActor],
+    ["fa-solid fa-qrcode", "PHONESHEET.Invite", showInvite],
     ["fa-solid fa-desktop", "PHONESHEET.Exit", exitPhoneMode]
   ];
   for ( const [icon, label, onClick, cssClass] of buttons ) {

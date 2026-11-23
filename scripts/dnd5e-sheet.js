@@ -1601,6 +1601,7 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       buttons: [
         { action: "fullSheet", label: "PHONESHEET.FullSheet", icon: "fa-solid fa-book-open" },
         { action: "switchCharacter", label: "PHONESHEET.Switch", icon: "fa-solid fa-users" },
+        { action: "invite", label: "PHONESHEET.Invite", icon: "fa-solid fa-qrcode" },
         { action: "exit", label: "PHONESHEET.Exit", icon: "fa-solid fa-desktop" }
       ],
       rejectClose: false

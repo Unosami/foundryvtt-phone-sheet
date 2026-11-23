@@ -113,6 +113,8 @@
   "PHONESHEET.Exhaustion.Legacy.4": "Hit point maximum halved",
   "PHONESHEET.Exhaustion.Legacy.5": "Speed reduced to 0",
   "PHONESHEET.QR.ShowInternet": "Show internet QR code",
+  "PHONESHEET.QR.None": "This server has no invitation link to share.",
+  "PHONESHEET.Invite": "Invite QR code",
   "PHONESHEET.Search.Actions": "Search actions",
   "PHONESHEET.Search.Items": "Search items",
   "PHONESHEET.Search.Spells": "Search spells",
