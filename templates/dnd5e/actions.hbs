@@ -30,7 +30,7 @@
         <li class="ps-action" data-key="{{key}}" data-item-id="{{itemId}}" data-activity-id="{{activityId}}"
             data-home="{{../id}}" data-search="{{search}}" data-tags="{{tags}}" data-name="{{name}}" data-damage="{{sortDamage}}" data-range="{{sortRange}}"
             data-order="{{@index}}">
-          <button type="button" class="ps-row" data-action="useActivity">
+          <button type="button" class="ps-row" data-action="{{#if passive}}toggleInfo{{else}}useActivity{{/if}}">
             <img src="{{img}}" alt="">
             <span class="ps-label">
               {{name}}{{#if activityName}} <small>· {{activityName}}</small>{{/if}}

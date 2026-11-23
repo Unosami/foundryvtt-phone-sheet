@@ -11,7 +11,9 @@ const ACTION_GROUPS = {
   bonus: "PHONESHEET.Group.Bonus",
   reaction: "PHONESHEET.Group.Reaction",
   free: "PHONESHEET.Group.Free",
-  special: "PHONESHEET.Group.Special"
+  special: "PHONESHEET.Group.Special",
+  // Features with nothing to use, listed last so they can still be looked up.
+  passive: "PHONESHEET.Group.Passive"
 };
 
 /** Subsections inside an action group, by where the action comes from, in display order. */
@@ -456,6 +458,16 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       group.count++;
     }
 
+    for ( const item of this.document.items ) {
+      if ( (item.type !== "feat") || item.system.activities?.some(a => a.canUse) ) continue;
+      const row = await this.#preparePassiveRow(item);
+      const sourceId = this.#actionSource(item);
+      const id = `passive.${sourceId}`;
+      groups.passive.sources[sourceId] ??= { id, ...ACTION_SOURCES[sourceId], rows: [], collapsed: this.#collapsed.has(id) };
+      groups.passive.sources[sourceId].rows.push(row);
+      groups.passive.count++;
+    }
+
     const typeRank = t => { const i = TYPE_ORDER.indexOf(t); return i === -1 ? TYPE_ORDER.length : i; };
     for ( const group of Object.values(groups) ) {
       group.sources = Object.keys(ACTION_SOURCES).map(id => group.sources[id]).filter(_ => _);
@@ -686,6 +698,31 @@ export default class PhoneSheet5e extends HandlebarsApplicationMixin(DocumentShe
       sortRange: this.#rangeFeet(item, activity),
       details: detailText,
       uses: uses?.max ? `${uses.value ?? 0}/${uses.max}` : null,
+      expanded,
+      description: expanded ? await this.#enrich(item) : null
+    };
+  }
+
+  /** A feature with no activity, such as Fighting Style or Darkvision. Tapping it shows its description. */
+  async #preparePassiveRow(item) {
+    const sys = item.system;
+    const key = `passive.${item.id}`;
+    const expanded = this.#expanded.has(key);
+    const details = sys.requirements || "";
+    return {
+      key,
+      itemId: item.id,
+      type: item.type,
+      level: 0,
+      img: item.img,
+      name: item.name,
+      passive: true,
+      search: searchText(item.name, details),
+      tags: "feature",
+      sortDamage: 0,
+      sortRange: 0,
+      details,
+      uses: sys.uses?.max ? `${sys.uses.value ?? 0}/${sys.uses.max}` : null,
       expanded,
       description: expanded ? await this.#enrich(item) : null
     };
